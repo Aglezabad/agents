@@ -8,6 +8,7 @@ This repository stores short agent definitions and prompts for the following age
 - PARANOIA — security reviewer (security-focused audits and remediation)
 - PERFO — performance reviewer (optimizations for constrained systems)
 - BIGBOSS — SOLID principle checker and fixer (detects violations and proposes refactors)
+- GOODREST — REST API good practices analyzer
 
 See AGENTS.md in the repository root for full agent prompts, usage rules, and recommended workflows.
 
