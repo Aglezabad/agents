@@ -1,6 +1,7 @@
 # copilot-agents
 
 A list of GitHub Copilot agent prompts I'm using for development.
+Also works with OpenCode (model tested: Big Pickle).
 
 This repository stores short agent definitions and prompts for the following agents:
 - ALPHA — code generator (implement features, produce code + tests)
