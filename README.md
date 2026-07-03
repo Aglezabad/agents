@@ -17,7 +17,7 @@ A universal agent prompt repository for GitHub Copilot, OpenCode, Cursor, Codex,
 - [GitHub Copilot](https://github.com/features/copilot)
 - [OpenCode](https://opencode.ai)
 - [Cursor](https://cursor.com)
-- [GitHub Codex CLI](https://github.com/github/codex)
+- [OpenAI Codex](https://github.com/openai/codex)
 - [Claude Code](https://claude.ai/code)
 
 ## How It Works
