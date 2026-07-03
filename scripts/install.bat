@@ -2,8 +2,8 @@
 setlocal
 
 set "SCRIPT_DIR=%~dp0"
-set "PROVIDER=opencode"
-set "TARGET_DIR=%USERPROFILE%\.config\opencode\agents"
+set "PROVIDER="
+set "TARGET_DIR="
 
 rem Parse arguments
 :parse_args
@@ -17,25 +17,41 @@ if "%~1"=="--provider" (
 if "%~1"=="-h" goto :show_help
 if "%~1"=="--help" goto :show_help
 echo Unknown option: %~1 >&2
-echo Usage: %~nx0 [--provider ^<github^|opencode^>] >&2
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
 exit /b 1
 
 :show_help
-echo Usage: %~nx0 [--provider ^<github^|opencode^>]
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^>
 echo.
 echo Providers:
-echo   github    Install GitHub Copilot agent files
-echo   opencode  Install OpenCode agent files (default)
+echo   github   Install GitHub Copilot agent files to %%USERPROFILE%%\.config\github-copilot\agents\
+echo   opencode Install OpenCode agent files to %%USERPROFILE%%\.config\opencode\agents\
+echo   cursor   Install Cursor agent files to %%USERPROFILE%%\.config\cursor\agents\
+echo   codex    Install GitHub Codex agent files to %%USERPROFILE%%\.config\codex\agents\
+echo   claude   Install Claude Code agent files to %%USERPROFILE%%\.config\claude\agents\
 exit /b 0
 
 :done_parsing
 
 rem Validate provider
-if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" (
-    echo Error: unknown provider '%PROVIDER%' >&2
-    echo Supported providers: github, opencode >&2
+if "%PROVIDER%"=="" (
+    echo Error: --provider is required >&2
+    echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
     exit /b 1
 )
+
+if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%"=="cursor" if not "%PROVIDER%"=="codex" if not "%PROVIDER%"=="claude" (
+    echo Error: unknown provider '%PROVIDER%' >&2
+    echo Supported providers: github, opencode, cursor, codex, claude >&2
+    exit /b 1
+)
+
+rem Set target directory based on provider
+if "%PROVIDER%"=="github" set "TARGET_DIR=%USERPROFILE%\.config\github-copilot\agents"
+if "%PROVIDER%"=="opencode" set "TARGET_DIR=%USERPROFILE%\.config\opencode\agents"
+if "%PROVIDER%"=="cursor" set "TARGET_DIR=%USERPROFILE%\.config\cursor\agents"
+if "%PROVIDER%"=="codex" set "TARGET_DIR=%USERPROFILE%\.config\codex\agents"
+if "%PROVIDER%"=="claude" set "TARGET_DIR=%USERPROFILE%\.config\claude\agents"
 
 echo Running generator for provider: %PROVIDER%...
 call "%SCRIPT_DIR%generate.bat" --provider %PROVIDER%
@@ -55,6 +71,24 @@ if "%PROVIDER%"=="github" (
 )
 if "%PROVIDER%"=="opencode" (
     for %%f in ("%SCRIPT_DIR%..\.opencode\agents\*.md") do (
+        copy "%%f" "%TARGET_DIR%\" >nul
+        echo   Installed: %%~nxf
+    )
+)
+if "%PROVIDER%"=="cursor" (
+    for %%f in ("%SCRIPT_DIR%..\.cursor\agents\*.md") do (
+        copy "%%f" "%TARGET_DIR%\" >nul
+        echo   Installed: %%~nxf
+    )
+)
+if "%PROVIDER%"=="codex" (
+    for %%f in ("%SCRIPT_DIR%..\.codex\agents\*.md") do (
+        copy "%%f" "%TARGET_DIR%\" >nul
+        echo   Installed: %%~nxf
+    )
+)
+if "%PROVIDER%"=="claude" (
+    for %%f in ("%SCRIPT_DIR%..\.claude\agents\*.md") do (
         copy "%%f" "%TARGET_DIR%\" >nul
         echo   Installed: %%~nxf
     )

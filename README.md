@@ -1,6 +1,6 @@
 # agents
 
-A universal agent prompt repository for GitHub Copilot and OpenCode.
+A universal agent prompt repository for GitHub Copilot, OpenCode, Cursor, Codex, and Claude Code.
 
 ## Available Agents
 
@@ -12,100 +12,140 @@ A universal agent prompt repository for GitHub Copilot and OpenCode.
 - **GOODREST** — REST API good practices analyzer
 - **UNCLEBOB** — clean code reviewer (readability, maintainability, and code quality principles)
 
+## Supported Providers
+
+- [GitHub Copilot](https://github.com/features/copilot)
+- [OpenCode](https://opencode.ai)
+- [Cursor](https://cursor.com)
+- [GitHub Codex CLI](https://github.com/github/codex)
+- [Claude Code](https://claude.ai/code)
+
 ## How It Works
 
-Agent definitions are stored as plain text in `agents/`. Provider-specific files are generated from this single source of truth.
+Agent definitions are stored as plain text in `agents/`. Provider-specific files are generated from this single source of truth using shell/batch scripts.
 
 ### Generate Provider Files
 
-By default, all provider files are generated. You can also target a specific provider.
+**You must specify a provider.** No default is assumed.
 
 **Linux / macOS / WSL:**
 ```bash
-# Generate all providers (default)
-./scripts/generate.sh
-
-# Generate only GitHub Copilot
+# GitHub Copilot
 ./scripts/generate.sh --provider github
 
-# Generate only OpenCode
+# OpenCode
 ./scripts/generate.sh --provider opencode
+
+# Cursor
+./scripts/generate.sh --provider cursor
+
+# GitHub Codex
+./scripts/generate.sh --provider codex
+
+# Claude Code
+./scripts/generate.sh --provider claude
 ```
 
 **Windows:**
 ```batch
-:: Generate all providers (default)
-scripts\generate.bat
-
-:: Generate only GitHub Copilot
+:: GitHub Copilot
 scripts\generate.bat --provider github
 
-:: Generate only OpenCode
+:: OpenCode
 scripts\generate.bat --provider opencode
+
+:: Cursor
+scripts\generate.bat --provider cursor
+
+:: GitHub Codex
+scripts\generate.bat --provider codex
+
+:: Claude Code
+scripts\generate.bat --provider claude
 ```
 
-This generates:
-- `.github/agents/*.agent.md` — GitHub Copilot custom agents
-- `.opencode/agents/*.md` — OpenCode custom agents
-- `AGENTS.md` — human-readable master index
+This generates files in the provider's expected directory:
+- `.github/agents/*.agent.md` — GitHub Copilot
+- `.opencode/agents/*.md` — OpenCode
+- `.cursor/agents/*.md` — Cursor
+- `.codex/agents/*.md` — GitHub Codex
+- `.claude/agents/*.md` — Claude Code
+- `AGENTS.md` — human-readable master index (always generated)
 
 ### Install Agents Globally
 
+**You must specify a provider.**
+
 **Linux / macOS / WSL:**
 ```bash
-# Install OpenCode agents globally (default)
-./scripts/install.sh
+# OpenCode
+./scripts/install.sh --provider opencode
 
-# Install GitHub Copilot agents globally
+# Cursor
+./scripts/install.sh --provider cursor
+
+# Claude Code
+./scripts/install.sh --provider claude
+
+# GitHub Copilot
 ./scripts/install.sh --provider github
+
+# GitHub Codex
+./scripts/install.sh --provider codex
 ```
 
 **Windows:**
 ```batch
-:: Install OpenCode agents globally (default)
-scripts\install.bat
+:: OpenCode
+scripts\install.bat --provider opencode
 
-:: Install GitHub Copilot agents globally
+:: Cursor
+scripts\install.bat --provider cursor
+
+:: Claude Code
+scripts\install.bat --provider claude
+
+:: GitHub Copilot
 scripts\install.bat --provider github
+
+:: GitHub Codex
+scripts\install.bat --provider codex
 ```
 
 ### Verify Synchronization
 
+**You must specify a provider.**
+
 **Linux / macOS / WSL:**
 ```bash
-# Check all providers (default)
-./scripts/check-sync.sh
-
-# Check only GitHub Copilot
 ./scripts/check-sync.sh --provider github
-
-# Check only OpenCode
 ./scripts/check-sync.sh --provider opencode
+./scripts/check-sync.sh --provider cursor
+./scripts/check-sync.sh --provider codex
+./scripts/check-sync.sh --provider claude
 ```
 
 **Windows:**
 ```batch
-:: Check all providers (default)
-scripts\check-sync.bat
-
-:: Check only GitHub Copilot
 scripts\check-sync.bat --provider github
-
-:: Check only OpenCode
 scripts\check-sync.bat --provider opencode
+scripts\check-sync.bat --provider cursor
+scripts\check-sync.bat --provider codex
+scripts\check-sync.bat --provider claude
 ```
 
-Exits with code 0 if all generated files match `agents/`, or 1 if any file is out of sync.
+Exits with code 0 if generated files match `agents/`, or 1 if any file is out of sync.
 
 ## Adding or Editing Agents
 
 1. Edit the corresponding file in `agents/`
-2. Run `scripts/generate.sh` (or `.bat`)
+2. Run `scripts/generate.sh --provider <name>` (or `.bat`)
 3. Commit both `agents/` and the generated files
 
 ## Usage
 
-- With GitHub Copilot: prefix requests with `AGENT: <NAME> — <task>`
-- With OpenCode: agents are available after installation
+- **GitHub Copilot / Codex:** prefix requests with `AGENT: <NAME> — <task>`
+- **OpenCode:** agents are available after installation
+- **Cursor / Claude Code:** refer to the provider's documentation for invoking custom agents
 
 See `AGENTS.md` for full agent prompts and recommended workflows.
