@@ -37,6 +37,8 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
     # Parse metadata: lines before first blank line
     # Extract ID
     agent_id=$(awk '/^ID:/ {print; exit}' "$agent_file" | sed 's/^ID:[[:space:]]*//' | tr -d '\r')
+    # Sanitize agent_id to prevent path traversal
+    agent_id=$(printf '%s' "$agent_id" | tr -cd 'A-Za-z0-9_-')
     # Extract NAME
     agent_name=$(awk '/^NAME:/ {print; exit}' "$agent_file" | sed 's/^NAME:[[:space:]]*//' | tr -d '\r')
     # Extract DESCRIPTION
@@ -45,6 +47,11 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
     if [ -z "$agent_id" ] || [ -z "$agent_desc" ]; then
         echo "Warning: skipping $agent_file (missing ID or DESCRIPTION)" >&2
         continue
+    fi
+
+    # Fallback for empty agent_name
+    if [ -z "$agent_name" ]; then
+        agent_name="$agent_id"
     fi
 
     # Extract body: everything after the first blank line
@@ -59,7 +66,7 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
         echo ""
         echo "# $agent_name"
         echo ""
-        echo "$body"
+        printf '%s\n' "$body"
     } > "$GITHUB_DIR/${agent_id}.agent.md"
 
     # Generate .opencode/agents/<id>.md
@@ -71,7 +78,7 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
         echo ""
         echo "# $agent_name"
         echo ""
-        echo "$body"
+        printf '%s\n' "$body"
     } > "$OPENCODE_DIR/${agent_id}.md"
 
     # Append to AGENTS.md
