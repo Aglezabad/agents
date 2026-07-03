@@ -5,17 +5,61 @@ set "AGENTS_DIR=agents"
 set "GITHUB_DIR=.github\agents"
 set "OPENCODE_DIR=.opencode\agents"
 set "MASTER_FILE=AGENTS.md"
+set "PROVIDER=all"
+
+rem Parse arguments
+:parse_args
+if "%~1"=="" goto :done_parsing
+if "%~1"=="--provider" (
+    set "PROVIDER=%~2"
+    shift
+    shift
+    goto :parse_args
+)
+if "%~1"=="-h" goto :show_help
+if "%~1"=="--help" goto :show_help
+echo Unknown option: %~1 >&2
+echo Usage: %~nx0 [--provider ^<github^|opencode^|all^>] >&2
+exit /b 1
+
+:show_help
+echo Usage: %~nx0 [--provider ^<github^|opencode^|all^>]
+echo.
+echo Providers:
+echo   github    Generate GitHub Copilot agent files (.github\agents\)
+echo   opencode  Generate OpenCode agent files (.opencode\agents\)
+echo   all       Generate all provider files (default)
+exit /b 0
+
+:done_parsing
+
+rem Validate provider
+if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%"=="all" (
+    echo Error: unknown provider '%PROVIDER%' >&2
+    echo Supported providers: github, opencode, all >&2
+    exit /b 1
+)
 
 if not exist "%AGENTS_DIR%" (
     echo Error: %AGENTS_DIR% directory not found. >&2
     exit /b 1
 )
 
-if not exist "%GITHUB_DIR%" mkdir "%GITHUB_DIR%"
-if not exist "%OPENCODE_DIR%" mkdir "%OPENCODE_DIR%"
-
-del /q "%GITHUB_DIR%\*.agent.md" 2>nul
-del /q "%OPENCODE_DIR%\*.md" 2>nul
+rem Create and clean only the directories we need
+if "%PROVIDER%"=="github" (
+    if not exist "%GITHUB_DIR%" mkdir "%GITHUB_DIR%"
+    del /q "%GITHUB_DIR%\*.agent.md" 2>nul
+)
+if "%PROVIDER%"=="opencode" (
+    if not exist "%OPENCODE_DIR%" mkdir "%OPENCODE_DIR%"
+    del /q "%OPENCODE_DIR%\*.md" 2>nul
+)
+if "%PROVIDER%"=="all" (
+    if not exist "%GITHUB_DIR%" mkdir "%GITHUB_DIR%"
+    if not exist "%OPENCODE_DIR%" mkdir "%OPENCODE_DIR%"
+    del /q "%GITHUB_DIR%\*.agent.md" 2>nul
+    del /q "%OPENCODE_DIR%\*.md" 2>nul
+)
 
 (
     echo # AGENTS
@@ -60,27 +104,52 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
 
     if "!agent_name!"=="" set "agent_name=!agent_id!"
 
-    (
-        echo ---
-        echo name: !agent_name!
-        echo description: !agent_desc!
-        echo ---
-        echo.
-        echo # !agent_name!
-        echo.
-        echo !body!
-    ) > "%GITHUB_DIR%\!agent_id!.agent.md"
-
-    (
-        echo ---
-        echo name: !agent_name!
-        echo description: !agent_desc!
-        echo ---
-        echo.
-        echo # !agent_name!
-        echo.
-        echo !body!
-    ) > "%OPENCODE_DIR%\!agent_id!.md"
+    if "%PROVIDER%"=="github" (
+        (
+            echo ---
+            echo name: !agent_name!
+            echo description: !agent_desc!
+            echo ---
+            echo.
+            echo # !agent_name!
+            echo.
+            echo !body!
+        ) > "%GITHUB_DIR%\!agent_id!.agent.md"
+    )
+    if "%PROVIDER%"=="opencode" (
+        (
+            echo ---
+            echo name: !agent_name!
+            echo description: !agent_desc!
+            echo ---
+            echo.
+            echo # !agent_name!
+            echo.
+            echo !body!
+        ) > "%OPENCODE_DIR%\!agent_id!.md"
+    )
+    if "%PROVIDER%"=="all" (
+        (
+            echo ---
+            echo name: !agent_name!
+            echo description: !agent_desc!
+            echo ---
+            echo.
+            echo # !agent_name!
+            echo.
+            echo !body!
+        ) > "%GITHUB_DIR%\!agent_id!.agent.md"
+        (
+            echo ---
+            echo name: !agent_name!
+            echo description: !agent_desc!
+            echo ---
+            echo.
+            echo # !agent_name!
+            echo.
+            echo !body!
+        ) > "%OPENCODE_DIR%\!agent_id!.md"
+    )
 
     (
         echo ### !agent_name! — !agent_desc!
@@ -104,7 +173,15 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
     echo - The agent named in the AGENT: prefix will determine the style of response ^(generator, reviewer, security, or performance^).
 ) >> "%MASTER_FILE%"
 
-echo Generated %count% agents for GitHub Copilot (%GITHUB_DIR%)
-echo Generated %count% agents for OpenCode (%OPENCODE_DIR%)
+if "%PROVIDER%"=="github" (
+    echo Generated %count% agents for GitHub Copilot (%GITHUB_DIR%)
+)
+if "%PROVIDER%"=="opencode" (
+    echo Generated %count% agents for OpenCode (%OPENCODE_DIR%)
+)
+if "%PROVIDER%"=="all" (
+    echo Generated %count% agents for GitHub Copilot (%GITHUB_DIR%)
+    echo Generated %count% agents for OpenCode (%OPENCODE_DIR%)
+)
 echo Generated master index (%MASTER_FILE%)
 endlocal

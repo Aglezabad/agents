@@ -18,14 +18,30 @@ Agent definitions are stored as plain text in `agents/`. Provider-specific files
 
 ### Generate Provider Files
 
+By default, all provider files are generated. You can also target a specific provider.
+
 **Linux / macOS / WSL:**
 ```bash
+# Generate all providers (default)
 ./scripts/generate.sh
+
+# Generate only GitHub Copilot
+./scripts/generate.sh --provider github
+
+# Generate only OpenCode
+./scripts/generate.sh --provider opencode
 ```
 
 **Windows:**
 ```batch
+:: Generate all providers (default)
 scripts\generate.bat
+
+:: Generate only GitHub Copilot
+scripts\generate.bat --provider github
+
+:: Generate only OpenCode
+scripts\generate.bat --provider opencode
 ```
 
 This generates:
@@ -33,28 +49,50 @@ This generates:
 - `.opencode/agents/*.md` — OpenCode custom agents
 - `AGENTS.md` — human-readable master index
 
-### Install Agents Globally (OpenCode)
+### Install Agents Globally
 
 **Linux / macOS / WSL:**
 ```bash
+# Install OpenCode agents globally (default)
 ./scripts/install.sh
+
+# Install GitHub Copilot agents globally
+./scripts/install.sh --provider github
 ```
 
 **Windows:**
 ```batch
+:: Install OpenCode agents globally (default)
 scripts\install.bat
+
+:: Install GitHub Copilot agents globally
+scripts\install.bat --provider github
 ```
 
 ### Verify Synchronization
 
 **Linux / macOS / WSL:**
 ```bash
+# Check all providers (default)
 ./scripts/check-sync.sh
+
+# Check only GitHub Copilot
+./scripts/check-sync.sh --provider github
+
+# Check only OpenCode
+./scripts/check-sync.sh --provider opencode
 ```
 
 **Windows:**
 ```batch
+:: Check all providers (default)
 scripts\check-sync.bat
+
+:: Check only GitHub Copilot
+scripts\check-sync.bat --provider github
+
+:: Check only OpenCode
+scripts\check-sync.bat --provider opencode
 ```
 
 Exits with code 0 if all generated files match `agents/`, or 1 if any file is out of sync.

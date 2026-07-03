@@ -4,17 +4,63 @@ setlocal
 set "SCRIPT_DIR=%~dp0"
 set "REPO_DIR=%SCRIPT_DIR%.."
 set "TEMP_DIR=%TEMP%\agent-sync-check-%RANDOM%"
+set "PROVIDER=all"
+
+rem Parse arguments
+:parse_args
+if "%~1"=="" goto :done_parsing
+if "%~1"=="--provider" (
+    set "PROVIDER=%~2"
+    shift
+    shift
+    goto :parse_args
+)
+if "%~1"=="-h" goto :show_help
+if "%~1"=="--help" goto :show_help
+echo Unknown option: %~1 >&2
+echo Usage: %~nx0 [--provider ^<github^|opencode^|all^>] >&2
+exit /b 1
+
+:show_help
+echo Usage: %~nx0 [--provider ^<github^|opencode^|all^>]
+echo.
+echo Providers:
+echo   github    Check only GitHub Copilot agent files
+echo   opencode  Check only OpenCode agent files
+echo   all       Check all provider files (default)
+exit /b 0
+
+:done_parsing
+
+rem Validate provider
+if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%"=="all" (
+    echo Error: unknown provider '%PROVIDER%' >&2
+    echo Supported providers: github, opencode, all >&2
+    exit /b 1
+)
 
 mkdir "%TEMP_DIR%"
 mkdir "%TEMP_DIR%\.github\agents"
 mkdir "%TEMP_DIR%\.opencode\agents"
 
 echo Saving current generated files to temp...
-if exist "%REPO_DIR%\.github\agents\*.agent.md" (
-    xcopy /y /q "%REPO_DIR%\.github\agents\*.agent.md" "%TEMP_DIR%\.github\agents\" >nul
+if "%PROVIDER%"=="github" (
+    if exist "%REPO_DIR%\.github\agents\*.agent.md" (
+        xcopy /y /q "%REPO_DIR%\.github\agents\*.agent.md" "%TEMP_DIR%\.github\agents\" >nul
+    )
 )
-if exist "%REPO_DIR%\.opencode\agents\*.md" (
-    xcopy /y /q "%REPO_DIR%\.opencode\agents\*.md" "%TEMP_DIR%\.opencode\agents\" >nul
+if "%PROVIDER%"=="opencode" (
+    if exist "%REPO_DIR%\.opencode\agents\*.md" (
+        xcopy /y /q "%REPO_DIR%\.opencode\agents\*.md" "%TEMP_DIR%\.opencode\agents\" >nul
+    )
+)
+if "%PROVIDER%"=="all" (
+    if exist "%REPO_DIR%\.github\agents\*.agent.md" (
+        xcopy /y /q "%REPO_DIR%\.github\agents\*.agent.md" "%TEMP_DIR%\.github\agents\" >nul
+    )
+    if exist "%REPO_DIR%\.opencode\agents\*.md" (
+        xcopy /y /q "%REPO_DIR%\.opencode\agents\*.md" "%TEMP_DIR%\.opencode\agents\" >nul
+    )
 )
 if exist "%REPO_DIR%\AGENTS.md" (
     copy /y "%REPO_DIR%\AGENTS.md" "%TEMP_DIR%\" >nul
@@ -22,50 +68,93 @@ if exist "%REPO_DIR%\AGENTS.md" (
 
 echo Regenerating fresh copies...
 pushd "%REPO_DIR%"
-call "%SCRIPT_DIR%generate.bat" >nul
+call "%SCRIPT_DIR%generate.bat" --provider %PROVIDER% >nul
 popd
 
 set DIFF_FOUND=0
 
-for %%f in ("%REPO_DIR%\.github\agents\*.agent.md") do (
-    set "fname=%%~nxf"
-    if not exist "%TEMP_DIR%\.github\agents\%%~nxf" (
-        echo MISMATCH: .github\agents\%%~nxf ^(new file, not in previous generation^)
-        set DIFF_FOUND=1
-    ) else (
-        fc /b "%%f" "%TEMP_DIR%\.github\agents\%%~nxf" >nul
-        if errorlevel 1 (
-            echo MISMATCH: .github\agents\%%~nxf
+if "%PROVIDER%"=="github" (
+    for %%f in ("%REPO_DIR%\.github\agents\*.agent.md") do (
+        set "fname=%%~nxf"
+        if not exist "%TEMP_DIR%\.github\agents\%%~nxf" (
+            echo MISMATCH: .github\agents\%%~nxf ^(new file, not in previous generation^)
+            set DIFF_FOUND=1
+        ) else (
+            fc /b "%%f" "%TEMP_DIR%\.github\agents\%%~nxf" >nul
+            if errorlevel 1 (
+                echo MISMATCH: .github\agents\%%~nxf
+                set DIFF_FOUND=1
+            )
+        )
+    )
+    for %%f in ("%TEMP_DIR%\.github\agents\*.agent.md") do (
+        if not exist "%REPO_DIR%\.github\agents\%%~nxf" (
+            echo MISMATCH: .github\agents\%%~nxf ^(file removed^)
             set DIFF_FOUND=1
         )
     )
 )
 
-for %%f in ("%TEMP_DIR%\.github\agents\*.agent.md") do (
-    if not exist "%REPO_DIR%\.github\agents\%%~nxf" (
-        echo MISMATCH: .github\agents\%%~nxf ^(file removed^)
-        set DIFF_FOUND=1
+if "%PROVIDER%"=="opencode" (
+    for %%f in ("%REPO_DIR%\.opencode\agents\*.md") do (
+        set "fname=%%~nxf"
+        if not exist "%TEMP_DIR%\.opencode\agents\%%~nxf" (
+            echo MISMATCH: .opencode\agents\%%~nxf ^(new file, not in previous generation^)
+            set DIFF_FOUND=1
+        ) else (
+            fc /b "%%f" "%TEMP_DIR%\.opencode\agents\%%~nxf" >nul
+            if errorlevel 1 (
+                echo MISMATCH: .opencode\agents\%%~nxf
+                set DIFF_FOUND=1
+            )
+        )
     )
-)
-
-for %%f in ("%REPO_DIR%\.opencode\agents\*.md") do (
-    set "fname=%%~nxf"
-    if not exist "%TEMP_DIR%\.opencode\agents\%%~nxf" (
-        echo MISMATCH: .opencode\agents\%%~nxf ^(new file, not in previous generation^)
-        set DIFF_FOUND=1
-    ) else (
-        fc /b "%%f" "%TEMP_DIR%\.opencode\agents\%%~nxf" >nul
-        if errorlevel 1 (
-            echo MISMATCH: .opencode\agents\%%~nxf
+    for %%f in ("%TEMP_DIR%\.opencode\agents\*.md") do (
+        if not exist "%REPO_DIR%\.opencode\agents\%%~nxf" (
+            echo MISMATCH: .opencode\agents\%%~nxf ^(file removed^)
             set DIFF_FOUND=1
         )
     )
 )
 
-for %%f in ("%TEMP_DIR%\.opencode\agents\*.md") do (
-    if not exist "%REPO_DIR%\.opencode\agents\%%~nxf" (
-        echo MISMATCH: .opencode\agents\%%~nxf ^(file removed^)
-        set DIFF_FOUND=1
+if "%PROVIDER%"=="all" (
+    for %%f in ("%REPO_DIR%\.github\agents\*.agent.md") do (
+        set "fname=%%~nxf"
+        if not exist "%TEMP_DIR%\.github\agents\%%~nxf" (
+            echo MISMATCH: .github\agents\%%~nxf ^(new file, not in previous generation^)
+            set DIFF_FOUND=1
+        ) else (
+            fc /b "%%f" "%TEMP_DIR%\.github\agents\%%~nxf" >nul
+            if errorlevel 1 (
+                echo MISMATCH: .github\agents\%%~nxf
+                set DIFF_FOUND=1
+            )
+        )
+    )
+    for %%f in ("%TEMP_DIR%\.github\agents\*.agent.md") do (
+        if not exist "%REPO_DIR%\.github\agents\%%~nxf" (
+            echo MISMATCH: .github\agents\%%~nxf ^(file removed^)
+            set DIFF_FOUND=1
+        )
+    )
+    for %%f in ("%REPO_DIR%\.opencode\agents\*.md") do (
+        set "fname=%%~nxf"
+        if not exist "%TEMP_DIR%\.opencode\agents\%%~nxf" (
+            echo MISMATCH: .opencode\agents\%%~nxf ^(new file, not in previous generation^)
+            set DIFF_FOUND=1
+        ) else (
+            fc /b "%%f" "%TEMP_DIR%\.opencode\agents\%%~nxf" >nul
+            if errorlevel 1 (
+                echo MISMATCH: .opencode\agents\%%~nxf
+                set DIFF_FOUND=1
+            )
+        )
+    )
+    for %%f in ("%TEMP_DIR%\.opencode\agents\*.md") do (
+        if not exist "%REPO_DIR%\.opencode\agents\%%~nxf" (
+            echo MISMATCH: .opencode\agents\%%~nxf ^(file removed^)
+            set DIFF_FOUND=1
+        )
     )
 )
 
