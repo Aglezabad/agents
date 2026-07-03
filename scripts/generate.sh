@@ -36,11 +36,11 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
 
     # Parse metadata: lines before first blank line
     # Extract ID
-    agent_id=$(grep -m 1 '^ID:' "$agent_file" | sed 's/^ID:[[:space:]]*//' | tr -d '\r')
+    agent_id=$(awk '/^ID:/ {print; exit}' "$agent_file" | sed 's/^ID:[[:space:]]*//' | tr -d '\r')
     # Extract NAME
-    agent_name=$(grep -m 1 '^NAME:' "$agent_file" | sed 's/^NAME:[[:space:]]*//' | tr -d '\r')
+    agent_name=$(awk '/^NAME:/ {print; exit}' "$agent_file" | sed 's/^NAME:[[:space:]]*//' | tr -d '\r')
     # Extract DESCRIPTION
-    agent_desc=$(grep -m 1 '^DESCRIPTION:' "$agent_file" | sed 's/^DESCRIPTION:[[:space:]]*//' | tr -d '\r')
+    agent_desc=$(awk '/^DESCRIPTION:/ {print; exit}' "$agent_file" | sed 's/^DESCRIPTION:[[:space:]]*//' | tr -d '\r')
 
     if [ -z "$agent_id" ] || [ -z "$agent_desc" ]; then
         echo "Warning: skipping $agent_file (missing ID or DESCRIPTION)" >&2
@@ -48,7 +48,7 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
     fi
 
     # Extract body: everything after the first blank line
-    body=$(awk 'BEGIN{found=0} /^[[:space:]]*$/ {found=1; next} found {print}' "$agent_file" | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba')
+    body=$(awk 'BEGIN{found=0} !found && /^[[:space:]]*$/ {found=1; next} found {print}' "$agent_file")
 
     # Generate .github/agents/<id>.agent.md
     {
