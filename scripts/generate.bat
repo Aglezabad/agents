@@ -9,6 +9,7 @@ set "CODEX_DIR=.codex\agents"
 set "CLAUDE_DIR=.claude\agents"
 set "MASTER_FILE=AGENTS.md"
 set "PROVIDER="
+set "NO_PREAMBLE=0"
 
 rem Parse arguments
 :parse_args
@@ -19,6 +20,11 @@ if "%~1"=="--provider" (
     shift
     goto :parse_args
 )
+if "%~1"=="--no-preamble" (
+    set "NO_PREAMBLE=1"
+    shift
+    goto :parse_args
+)
 if "%~1"=="-h" goto :show_help
 if "%~1"=="--help" goto :show_help
 echo Unknown option: %~1 >&2
@@ -26,7 +32,10 @@ echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
 exit /b 1
 
 :show_help
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^>
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--no-preamble]
+echo.
+echo Options:
+echo   --no-preamble   Skip injecting the compact-thinking preamble
 echo.
 echo Providers:
 echo   github   Generate GitHub Copilot agent files (.github\agents\)
@@ -120,6 +129,30 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
     if "!agent_desc!"=="" goto :skip
 
     if "!agent_name!"=="" set "agent_name=!agent_id!"
+
+    rem Prepend compact-thinking preamble if available
+    if "%NO_PREAMBLE%"=="0" (
+        if exist "preambles\compact-thinking.txt" (
+            for %%p in ("preambles\compact-thinking.txt") do if %%~zp gtr 0 (
+                set "preamble="
+                for /f "usebackq delims=" %%l in ("preambles\compact-thinking.txt") do (
+                    if "!preamble!"=="" (
+                        set "preamble=%%l"
+                    ) else (
+                        set "preamble=!preamble!
+%%l"
+                    )
+                )
+                set "body=!preamble!
+
+!body!"
+            ) else (
+                echo Warning: preambles\compact-thinking.txt is empty; generating without preamble >&2
+            )
+        ) else (
+            echo Warning: preambles\compact-thinking.txt missing; generating without preamble >&2
+        )
+    )
 
     if "%PROVIDER%"=="github" (
         (
