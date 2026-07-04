@@ -27,6 +27,21 @@ clean code reviewer focused on readability, maintainability, and disciplined des
 
 ---
 
+## Compact Thinking (Token Optimization)
+
+All agents include an internal reasoning directive that encourages the model to think in its most token-efficient language during analysis, while always responding to you in the language you used for your request.
+
+### Runtime Override
+
+If you prefer the model to reason in a specific language, include one of these phrases in your request:
+
+- `THINK IN MY LANGUAGE` — forces reasoning to match your input language
+- `THINK IN ENGLISH`, `THINK IN SPANISH`, etc. — forces reasoning in the named language
+
+The override takes effect immediately without needing to regenerate agents.
+
+---
+
 ## Usage rules (with GitHub Copilot)
 - When requesting Copilot to run or create code, include a clear top-line instruction naming the agent, e.g.:
   - `AGENT: ALPHA — <task description>`
