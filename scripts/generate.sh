@@ -15,6 +15,7 @@ CLAUDE_DIR=".claude/agents"
 MASTER_FILE="AGENTS.md"
 
 PROVIDER=""
+NO_PREAMBLE="0"
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -23,8 +24,15 @@ while [ $# -gt 0 ]; do
             PROVIDER="$2"
             shift 2
             ;;
+        --no-preamble)
+            NO_PREAMBLE="1"
+            shift
+            ;;
         -h|--help)
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>"
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--no-preamble]"
+            echo ""
+            echo "Options:"
+            echo "  --no-preamble   Skip injecting the compact-thinking preamble"
             echo ""
             echo "Providers:"
             echo "  github   Generate GitHub Copilot agent files (.github/agents/)"
@@ -118,6 +126,18 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
 
     # Extract body: everything after the first blank line
     body=$(awk 'BEGIN{found=0} !found && /^[[:space:]]*$/ {found=1; next} found {print}' "$agent_file")
+
+    # Prepend compact-thinking preamble if available
+    if [ "$NO_PREAMBLE" != "1" ]; then
+        if [ -f "preambles/compact-thinking.txt" ] && [ -s "preambles/compact-thinking.txt" ]; then
+            preamble=$(cat preambles/compact-thinking.txt)
+            body="$preamble
+
+$body"
+        else
+            echo "Warning: preambles/compact-thinking.txt missing or empty; generating without preamble" >&2
+        fi
+    fi
 
     # Generate files for the selected provider
     if [ "$PROVIDER" = "github" ]; then
