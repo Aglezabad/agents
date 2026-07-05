@@ -1,0 +1,29 @@
+# Clean Test Input: OMEGA — Clean PR Diff
+
+Review the following diff. It is intentionally clean and correct:
+
+```diff
+diff --git a/src/calculator.py b/src/calculator.py
+index 3a4b5c6..7d8e9f0 100644
+--- a/src/calculator.py
++++ b/src/calculator.py
+@@ -10,7 +10,10 @@ def calculate_total(orders):
+     total = 0
+     for order in orders:
+         total += order.price * order.quantity
++        # Apply bulk discount for orders with 10+ items
++        if order.quantity >= 10:
++            total -= order.price * order.quantity * 0.05
+     return total
+ 
+ def format_currency(amount, currency="USD"):
+     symbols = {"USD": "$", "EUR": "€", "GBP": "£"}
+     symbol = symbols.get(currency, "$")
+     return f"{symbol}{amount:.2f}"
+```
+
+The changes:
+1. Add a bulk discount (5% off when quantity >= 10). Formula is correct: `price * quantity * 0.05`.
+2. Add `format_currency` with support for USD, EUR, GBP.
+
+No bugs, no style issues, no dead code.

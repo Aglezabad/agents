@@ -1,0 +1,84 @@
+# Test Input: GOODREST — REST API Violations
+
+Analyze the following OpenAPI 3.0 snippet:
+
+```yaml
+openapi: 3.0.0
+info:
+  title: E-Commerce API
+  version: "1.0"
+paths:
+  /getAllUsers:
+    get:
+      summary: Get users
+      responses:
+        "200":
+          description: OK
+  /createUser:
+    post:
+      summary: Create user
+      responses:
+        "200":
+          description: OK
+  /users/{id}/deleteUser:
+    post:
+      summary: Delete user
+      responses:
+        "200":
+          description: OK
+  /api/users:
+    get:
+      summary: List users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-RateLimit:
+              description: Rate limit info
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+  /orders:
+    get:
+      summary: List all orders
+      security: []
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create order
+      responses:
+        "201":
+          description: Created
+  /orders/{orderId}:
+    put:
+      summary: Partial update order
+      responses:
+        "200":
+          description: OK
+  /products/{productId}/reviews:
+    get:
+      summary: Get reviews
+      responses:
+        "200":
+          description: OK
+```
+
+Issues intentionally present:
+- Verbs in URLs (`getAllUsers`, `createUser`, `deleteUser`)
+- Wrong HTTP method for delete (POST instead of DELETE)
+- No API versioning
+- No pagination, filtering, or sorting on collection endpoints
+- Missing standard security scheme (OAuth2/JWT/API keys)
+- PUT used for partial update instead of PATCH
+- No HTTPS enforcement mentioned
+- No deprecation strategy
+- Inconsistent resource naming (`/api/users` vs `/users/{id}`)
