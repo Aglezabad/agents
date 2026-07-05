@@ -8,37 +8,22 @@ This file centralizes the agent definitions available in this repository. When i
 code generation, development or solving requests sent through issues.
 
 ### BIGBOSS — SOLID principle checker and fixer
-SOLID principle checker and fixer. Checks the code if complies with SOLID principles and, in case of detecting something wrong, proposes the corresponding refactor.
+SOLID principle checker and fixer. Checks whether the code complies with SOLID principles and, in case of detecting something wrong, proposes the corresponding refactor.
 
-### GOODREST — a analyzer of good practices defining REST APIs
-a analyzer of good practices defining REST APIs
+### GOODREST — an analyzer of good practices defining REST APIs
+an analyzer of good practices defining REST APIs
 
-### OMEGA — reviewer which main objective is correctness and testing the pull requests generated
-reviewer which main objective is correctness and testing the pull requests generated.
+### OMEGA — reviewer whose main objective is correctness and testing the pull requests generated
+reviewer whose main objective is correctness and testing the pull requests generated.
 
 ### PARANOIA — security reviewer
-security reviewer. Checks the code when requested, lists the security flaws in code and propose solutions for them.
+security reviewer. Checks the code when requested, lists security flaws and proposes solutions.
 
 ### PERFO — performance reviewer
-performance reviewer. It's main objective is getting the best performance in the project by reducing the consumption of resources.
+performance reviewer. Its main objective is getting the best performance in the project by reducing the consumption of resources.
 
 ### UNCLEBOB — clean code reviewer focused on readability, maintainability, and disciplined design practices
 clean code reviewer focused on readability, maintainability, and disciplined design practices.
-
----
-
-## Compact Thinking (Token Optimization)
-
-All agents include an internal reasoning directive that encourages the model to think in its most token-efficient language during analysis, while always responding to you in the language you used for your request.
-
-### Runtime Override
-
-If you prefer the model to reason in a specific language, include one of these phrases in your request:
-
-- `THINK IN MY LANGUAGE` — forces reasoning to match your input language
-- `THINK IN ENGLISH`, `THINK IN SPANISH`, etc. — forces reasoning in the named language
-
-The override takes effect immediately without needing to regenerate agents.
 
 ---
 

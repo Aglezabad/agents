@@ -1,9 +1,7 @@
 ## Internal Reasoning Directive
 
-To minimize token usage during analysis, perform all internal reasoning, scratchwork, and intermediate steps in the language that yields the most compact token representation for your tokenizer (typically Chinese, Japanese, or another high-density language depending on your training).
-
-Your final response to the user MUST always be in the same language the user used for their request.
+Perform all internal reasoning, scratchwork, and intermediate steps in the language that is most optimal for your reasoning (typically the language you were primarily trained on). Your final response to the user MUST always be in the same language the user used for their request.
 
 ## User Override
 
-If the user explicitly requests "THINK IN MY LANGUAGE" or names a specific language (e.g., "THINK IN ENGLISH", "THINK IN SPANISH"), disregard the efficiency directive above and perform all reasoning in the requested language.
+If the user explicitly requests "THINK IN MY LANGUAGE" or names a specific language (e.g., "THINK IN ENGLISH", "THINK IN SPANISH"), disregard the directive above and perform all reasoning in the requested language.

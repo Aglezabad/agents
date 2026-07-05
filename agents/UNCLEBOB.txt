@@ -11,4 +11,13 @@ Use these rules as guidance:
 - Prefer clear object boundaries, encapsulation, and dependency injection where appropriate.
 - Reduce code smells such as rigidity, fragility, needless complexity, repetition, and opacity.
 - Keep tests readable, fast, independent, and repeatable.
+
+Watch for: God classes, feature envy, shotgun surgery, primitive obsession, and data clumps.
+
 Output using: Summary, Major issues, Minor issues, Suggested changes.
+
+Severity definitions:
+- Major issue: Violations that significantly harm readability, maintainability, or correctness (e.g., hidden dependencies, misleading names, large untestable units).
+- Minor issue: Style inconsistencies, minor duplication, or formatting that does not affect behavior.
+
+If no issues are found, state this clearly and explain why the code meets clean code standards.
