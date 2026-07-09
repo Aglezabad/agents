@@ -139,8 +139,30 @@ Exits with code 0 if generated files match `agents/`, or 1 if any file is out of
 ## Adding or Editing Agents
 
 1. Edit the corresponding file in `agents/`
-2. Run `scripts/generate.sh --provider <name>` (or `.bat`)
-3. Commit both `agents/` and the generated files
+2. Optional: set recommended models per tier:
+   - `MODEL:` — performance tier (default)
+   - `MODEL_BALANCED:` — balanced tier
+   - `MODEL_ECONOMY:` — economy tier
+   - `OPENCODE_MODEL:`, `OPENCODE_MODEL_BALANCED:`, `OPENCODE_MODEL_ECONOMY:` — OpenCode-specific overrides
+3. Run `scripts/generate.sh --provider <name> [--tier <economy|balanced|performance>]` (or `.bat`)
+4. Commit both `agents/` and the generated files
+
+## Recommended Models
+
+Each agent defines three model tiers using provider-agnostic family names:
+
+| Tier | Description |
+|------|-------------|
+| **Performance** | Best quality regardless of cost |
+| **Balanced** | Good quality at moderate cost |
+| **Economy** | Cheapest viable option |
+
+| Agent | Performance | Balanced | Economy |
+|-------|-------------|----------|---------|
+| ALPHA, PERFO, UNCLEBOB | `kimi-k2.7-code` | `kimi-k2.5` | `qwen3.5-plus` |
+| OMEGA, PARANOIA, BIGBOSS, GOODREST | `claude-sonnet-4-6` | `claude-sonnet-4-5` | `qwen3.5-plus` |
+
+OpenCode requires `provider/model-id` format, so each tier also has an `OPENCODE_MODEL_*` override. Generate or install with `--tier economy` or `--tier balanced` to use cheaper models, or omit the flag for the performance tier.
 
 ## Usage
 
