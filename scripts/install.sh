@@ -32,7 +32,7 @@ while [ $# -gt 0 ]; do
             echo "Providers:"
             echo "  github   Install GitHub Copilot agent files to ~/.config/github-copilot/agents/"
             echo "  opencode Install OpenCode agent files to ~/.config/opencode/agents/"
-            echo "  cursor   Install Cursor agent files to ~/.config/cursor/agents/"
+            echo "  cursor   Install Cursor agent files to ~/.cursor/agents/ (macOS) or ~/.config/cursor/agents/ (Linux)"
             echo "  codex    Install GitHub Codex agent files to ~/.config/codex/agents/"
             echo "  claude   Install Claude Code agent files to ~/.config/claude/agents/"
             exit 0
@@ -81,7 +81,11 @@ case "$PROVIDER" in
         TARGET_DIR="$HOME/.config/opencode/agents"
         ;;
     cursor)
-        TARGET_DIR="$HOME/.config/cursor/agents"
+        if [ "$(uname -s)" = "Darwin" ]; then
+            TARGET_DIR="$HOME/.cursor/agents"
+        else
+            TARGET_DIR="$HOME/.config/cursor/agents"
+        fi
         ;;
     codex)
         TARGET_DIR="$HOME/.config/codex/agents"
