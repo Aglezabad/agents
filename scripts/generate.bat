@@ -9,6 +9,7 @@ set "CODEX_DIR=.codex\agents"
 set "CLAUDE_DIR=.claude\agents"
 set "MASTER_FILE=AGENTS.md"
 set "PROVIDER="
+set "TIER=performance"
 set "NO_PREAMBLE=0"
 
 rem Parse arguments
@@ -16,6 +17,12 @@ rem Parse arguments
 if "%~1"=="" goto :done_parsing
 if "%~1"=="--provider" (
     set "PROVIDER=%~2"
+    shift
+    shift
+    goto :parse_args
+)
+if "%~1"=="--tier" (
+    set "TIER=%~2"
     shift
     shift
     goto :parse_args
@@ -28,13 +35,14 @@ if "%~1"=="--no-preamble" (
 if "%~1"=="-h" goto :show_help
 if "%~1"=="--help" goto :show_help
 echo Unknown option: %~1 >&2
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>] >&2
 exit /b 1
 
 :show_help
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--no-preamble]
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>] [--no-preamble]
 echo.
 echo Options:
+echo   --tier          Model tier to generate: economy, balanced, or performance (default: performance)
 echo   --no-preamble   Skip injecting the compact-thinking preamble
 echo.
 echo Providers:
@@ -57,6 +65,12 @@ if "%PROVIDER%"=="" (
 if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%"=="cursor" if not "%PROVIDER%"=="codex" if not "%PROVIDER%"=="claude" (
     echo Error: unknown provider '%PROVIDER%' >&2
     echo Supported providers: github, opencode, cursor, codex, claude >&2
+    exit /b 1
+)
+
+if not "%TIER%"=="economy" if not "%TIER%"=="balanced" if not "%TIER%"=="performance" (
+    echo Error: unknown tier '%TIER%' >&2
+    echo Supported tiers: economy, balanced, performance >&2
     exit /b 1
 )
 
@@ -102,6 +116,12 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
     set "agent_id="
     set "agent_name="
     set "agent_desc="
+    set "agent_model="
+    set "agent_model_balanced="
+    set "agent_model_economy="
+    set "agent_opencode_model="
+    set "agent_opencode_model_balanced="
+    set "agent_opencode_model_economy="
     set "in_body=0"
     set "body="
 
@@ -114,6 +134,12 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
                 echo !line! | findstr /b "ID:" >nul && set "agent_id=!line:~4!"
                 echo !line! | findstr /b "NAME:" >nul && set "agent_name=!line:~6!"
                 echo !line! | findstr /b "DESCRIPTION:" >nul && set "agent_desc=!line:~13!"
+                echo !line! | findstr /b "MODEL:" >nul && set "agent_model=!line:~6!"
+                echo !line! | findstr /b "MODEL_BALANCED:" >nul && set "agent_model_balanced=!line:~16!"
+                echo !line! | findstr /b "MODEL_ECONOMY:" >nul && set "agent_model_economy=!line:~14!"
+                echo !line! | findstr /b "OPENCODE_MODEL:" >nul && set "agent_opencode_model=!line:~16!"
+                echo !line! | findstr /b "OPENCODE_MODEL_BALANCED:" >nul && set "agent_opencode_model_balanced=!line:~26!"
+                echo !line! | findstr /b "OPENCODE_MODEL_ECONOMY:" >nul && set "agent_opencode_model_economy=!line:~24!"
             )
         ) else (
             if "!body!"=="" (
@@ -129,6 +155,45 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
     if "!agent_desc!"=="" goto :skip
 
     if "!agent_name!"=="" set "agent_name=!agent_id!"
+
+    rem Determine the model ID to emit for the target provider and tier
+    if "%PROVIDER%"=="opencode" (
+        if "%TIER%"=="economy" (
+            if not "!agent_opencode_model_economy!"=="" (
+                set "emit_model=!agent_opencode_model_economy!"
+            ) else if not "!agent_opencode_model_balanced!"=="" (
+                set "emit_model=!agent_opencode_model_balanced!"
+            ) else (
+                set "emit_model=!agent_opencode_model!"
+            )
+        ) else if "%TIER%"=="balanced" (
+            if not "!agent_opencode_model_balanced!"=="" (
+                set "emit_model=!agent_opencode_model_balanced!"
+            ) else (
+                set "emit_model=!agent_opencode_model!"
+            )
+        ) else (
+            set "emit_model=!agent_opencode_model!"
+        )
+    ) else (
+        if "%TIER%"=="economy" (
+            if not "!agent_model_economy!"=="" (
+                set "emit_model=!agent_model_economy!"
+            ) else if not "!agent_model_balanced!"=="" (
+                set "emit_model=!agent_model_balanced!"
+            ) else (
+                set "emit_model=!agent_model!"
+            )
+        ) else if "%TIER%"=="balanced" (
+            if not "!agent_model_balanced!"=="" (
+                set "emit_model=!agent_model_balanced!"
+            ) else (
+                set "emit_model=!agent_model!"
+            )
+        ) else (
+            set "emit_model=!agent_model!"
+        )
+    )
 
     rem Prepend compact-thinking preamble if available
     if "%NO_PREAMBLE%"=="0" (
@@ -159,6 +224,7 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
             echo ---
             echo name: !agent_name!
             echo description: !agent_desc!
+            if not "!emit_model!"=="" echo model: !emit_model!
             echo ---
             echo.
             echo # !agent_name!
@@ -171,6 +237,7 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
             echo ---
             echo name: !agent_name!
             echo description: !agent_desc!
+            if not "!emit_model!"=="" echo model: !emit_model!
             echo ---
             echo.
             echo # !agent_name!
@@ -183,6 +250,7 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
             echo ---
             echo name: !agent_name!
             echo description: !agent_desc!
+            if not "!emit_model!"=="" echo model: !emit_model!
             echo ---
             echo.
             echo # !agent_name!
@@ -195,6 +263,7 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
             echo ---
             echo name: !agent_name!
             echo description: !agent_desc!
+            if not "!emit_model!"=="" echo model: !emit_model!
             echo ---
             echo.
             echo # !agent_name!
@@ -207,6 +276,7 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
             echo ---
             echo name: !agent_name!
             echo description: !agent_desc!
+            if not "!emit_model!"=="" echo model: !emit_model!
             echo ---
             echo.
             echo # !agent_name!
@@ -215,9 +285,33 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
         ) > "%CLAUDE_DIR%\!agent_id!.md"
     )
 
+    rem Build recommended model lines for AGENTS.md
+    set "perf_line="
+    set "balanced_line="
+    set "economy_line="
+    if not "!agent_model!"=="" (
+        set "perf_line=- Performance: `!agent_model!`"
+        if not "!agent_opencode_model!"=="" set "perf_line=!perf_line! (`!agent_opencode_model!` on OpenCode)"
+    )
+    if not "!agent_model_balanced!"=="" (
+        set "balanced_line=- Balanced: `!agent_model_balanced!`"
+        if not "!agent_opencode_model_balanced!"=="" set "balanced_line=!balanced_line! (`!agent_opencode_model_balanced!` on OpenCode)"
+    )
+    if not "!agent_model_economy!"=="" (
+        set "economy_line=- Economy: `!agent_model_economy!`"
+        if not "!agent_opencode_model_economy!"=="" set "economy_line=!economy_line! (`!agent_opencode_model_economy!` on OpenCode)"
+    )
+
     (
         echo ### !agent_name! — !agent_desc!
         echo !agent_desc!
+        if not "!perf_line!"=="" (
+            echo.
+            echo **Recommended models:**
+            echo !perf_line!
+            if not "!balanced_line!"=="" echo !balanced_line!
+            if not "!economy_line!"=="" echo !economy_line!
+        )
         echo.
     ) >> "%MASTER_FILE%"
 
@@ -237,10 +331,10 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
     echo - The agent named in the AGENT: prefix will determine the style of response ^(generator, reviewer, security, or performance^).
 ) >> "%MASTER_FILE%"
 
-if "%PROVIDER%"=="github" echo Generated %count% agents for GitHub Copilot (%GITHUB_DIR%)
-if "%PROVIDER%"=="opencode" echo Generated %count% agents for OpenCode (%OPENCODE_DIR%)
-if "%PROVIDER%"=="cursor" echo Generated %count% agents for Cursor (%CURSOR_DIR%)
-if "%PROVIDER%"=="codex" echo Generated %count% agents for Codex (%CODEX_DIR%)
-if "%PROVIDER%"=="claude" echo Generated %count% agents for Claude Code (%CLAUDE_DIR%)
+if "%PROVIDER%"=="github" echo Generated %count% agents for GitHub Copilot (%GITHUB_DIR%) using %TIER% tier
+if "%PROVIDER%"=="opencode" echo Generated %count% agents for OpenCode (%OPENCODE_DIR%) using %TIER% tier
+if "%PROVIDER%"=="cursor" echo Generated %count% agents for Cursor (%CURSOR_DIR%) using %TIER% tier
+if "%PROVIDER%"=="codex" echo Generated %count% agents for Codex (%CODEX_DIR%) using %TIER% tier
+if "%PROVIDER%"=="claude" echo Generated %count% agents for Claude Code (%CLAUDE_DIR%) using %TIER% tier
 echo Generated master index (%MASTER_FILE%)
 endlocal

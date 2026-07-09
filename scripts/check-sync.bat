@@ -5,6 +5,7 @@ set "SCRIPT_DIR=%~dp0"
 set "REPO_DIR=%SCRIPT_DIR%.."
 set "TEMP_DIR=%TEMP%\agent-sync-check-%RANDOM%"
 set "PROVIDER="
+set "TIER=performance"
 
 rem Parse arguments
 :parse_args
@@ -15,14 +16,23 @@ if "%~1"=="--provider" (
     shift
     goto :parse_args
 )
+if "%~1"=="--tier" (
+    set "TIER=%~2"
+    shift
+    shift
+    goto :parse_args
+)
 if "%~1"=="-h" goto :show_help
 if "%~1"=="--help" goto :show_help
 echo Unknown option: %~1 >&2
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>] >&2
 exit /b 1
 
 :show_help
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^>
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>]
+echo.
+echo Options:
+echo   --tier  Model tier to check: economy, balanced, or performance (default: performance)
 echo.
 echo Providers:
 echo   github   Check GitHub Copilot agent files
@@ -44,6 +54,12 @@ if "%PROVIDER%"=="" (
 if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%"=="cursor" if not "%PROVIDER%"=="codex" if not "%PROVIDER%"=="claude" (
     echo Error: unknown provider '%PROVIDER%' >&2
     echo Supported providers: github, opencode, cursor, codex, claude >&2
+    exit /b 1
+)
+
+if not "%TIER%"=="economy" if not "%TIER%"=="balanced" if not "%TIER%"=="performance" (
+    echo Error: unknown tier '%TIER%' >&2
+    echo Supported tiers: economy, balanced, performance >&2
     exit /b 1
 )
 
@@ -86,7 +102,7 @@ if exist "%REPO_DIR%\AGENTS.md" (
 
 echo Regenerating fresh copies...
 pushd "%REPO_DIR%"
-call "%SCRIPT_DIR%generate.bat" --provider %PROVIDER% >nul
+call "%SCRIPT_DIR%generate.bat" --provider %PROVIDER% --tier %TIER% >nul
 popd
 
 set DIFF_FOUND=0

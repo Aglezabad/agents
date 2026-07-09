@@ -3,6 +3,7 @@ setlocal
 
 set "SCRIPT_DIR=%~dp0"
 set "PROVIDER="
+set "TIER=performance"
 set "TARGET_DIR="
 
 rem Parse arguments
@@ -14,14 +15,23 @@ if "%~1"=="--provider" (
     shift
     goto :parse_args
 )
+if "%~1"=="--tier" (
+    set "TIER=%~2"
+    shift
+    shift
+    goto :parse_args
+)
 if "%~1"=="-h" goto :show_help
 if "%~1"=="--help" goto :show_help
 echo Unknown option: %~1 >&2
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>] >&2
 exit /b 1
 
 :show_help
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^>
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>]
+echo.
+echo Options:
+echo   --tier  Model tier to install: economy, balanced, or performance (default: performance)
 echo.
 echo Providers:
 echo   github   Install GitHub Copilot agent files to %%USERPROFILE%%\.config\github-copilot\agents\
@@ -46,6 +56,12 @@ if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%
     exit /b 1
 )
 
+if not "%TIER%"=="economy" if not "%TIER%"=="balanced" if not "%TIER%"=="performance" (
+    echo Error: unknown tier '%TIER%' >&2
+    echo Supported tiers: economy, balanced, performance >&2
+    exit /b 1
+)
+
 rem Set target directory based on provider
 if "%PROVIDER%"=="github" set "TARGET_DIR=%USERPROFILE%\.config\github-copilot\agents"
 if "%PROVIDER%"=="opencode" set "TARGET_DIR=%USERPROFILE%\.config\opencode\agents"
@@ -53,8 +69,8 @@ if "%PROVIDER%"=="cursor" set "TARGET_DIR=%USERPROFILE%\.config\cursor\agents"
 if "%PROVIDER%"=="codex" set "TARGET_DIR=%USERPROFILE%\.config\codex\agents"
 if "%PROVIDER%"=="claude" set "TARGET_DIR=%USERPROFILE%\.config\claude\agents"
 
-echo Running generator for provider: %PROVIDER%...
-call "%SCRIPT_DIR%generate.bat" --provider %PROVIDER%
+echo Running generator for provider: %PROVIDER%, tier: %TIER%...
+call "%SCRIPT_DIR%generate.bat" --provider %PROVIDER% --tier %TIER%
 
 if not exist "%TARGET_DIR%" (
     echo Creating target directory: %TARGET_DIR%

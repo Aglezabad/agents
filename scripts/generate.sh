@@ -15,6 +15,7 @@ CLAUDE_DIR=".claude/agents"
 MASTER_FILE="AGENTS.md"
 
 PROVIDER=""
+TIER="performance"
 NO_PREAMBLE="0"
 
 # Parse arguments
@@ -24,14 +25,19 @@ while [ $# -gt 0 ]; do
             PROVIDER="$2"
             shift 2
             ;;
+        --tier)
+            TIER="$2"
+            shift 2
+            ;;
         --no-preamble)
             NO_PREAMBLE="1"
             shift
             ;;
         -h|--help)
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--no-preamble]"
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>] [--no-preamble]"
             echo ""
             echo "Options:"
+            echo "  --tier          Model tier to generate: economy, balanced, or performance (default: performance)"
             echo "  --no-preamble   Skip injecting the compact-thinking preamble"
             echo ""
             echo "Providers:"
@@ -44,7 +50,7 @@ while [ $# -gt 0 ]; do
             ;;
         *)
             echo "Unknown option: $1" >&2
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>" >&2
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>]" >&2
             exit 1
             ;;
     esac
@@ -63,6 +69,16 @@ case "$PROVIDER" in
     *)
         echo "Error: unknown provider '$PROVIDER'" >&2
         echo "Supported providers: github, opencode, cursor, codex, claude" >&2
+        exit 1
+        ;;
+esac
+
+case "$TIER" in
+    economy|balanced|performance)
+        ;;
+    *)
+        echo "Error: unknown tier '$TIER'" >&2
+        echo "Supported tiers: economy, balanced, performance" >&2
         exit 1
         ;;
 esac
@@ -113,6 +129,14 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
     agent_name=$(awk '/^NAME:/ {print; exit}' "$agent_file" | sed 's/^NAME:[[:space:]]*//' | tr -d '\r')
     # Extract DESCRIPTION
     agent_desc=$(awk '/^DESCRIPTION:/ {print; exit}' "$agent_file" | sed 's/^DESCRIPTION:[[:space:]]*//' | tr -d '\r')
+    # Extract MODEL tiers (optional, provider-agnostic)
+    agent_model=$(awk '/^MODEL:/ {print; exit}' "$agent_file" | sed 's/^MODEL:[[:space:]]*//' | tr -d '\r')
+    agent_model_balanced=$(awk '/^MODEL_BALANCED:/ {print; exit}' "$agent_file" | sed 's/^MODEL_BALANCED:[[:space:]]*//' | tr -d '\r')
+    agent_model_economy=$(awk '/^MODEL_ECONOMY:/ {print; exit}' "$agent_file" | sed 's/^MODEL_ECONOMY:[[:space:]]*//' | tr -d '\r')
+    # Extract OpenCode-specific model tier overrides (optional)
+    agent_opencode_model=$(awk '/^OPENCODE_MODEL:/ {print; exit}' "$agent_file" | sed 's/^OPENCODE_MODEL:[[:space:]]*//' | tr -d '\r')
+    agent_opencode_model_balanced=$(awk '/^OPENCODE_MODEL_BALANCED:/ {print; exit}' "$agent_file" | sed 's/^OPENCODE_MODEL_BALANCED:[[:space:]]*//' | tr -d '\r')
+    agent_opencode_model_economy=$(awk '/^OPENCODE_MODEL_ECONOMY:/ {print; exit}' "$agent_file" | sed 's/^OPENCODE_MODEL_ECONOMY:[[:space:]]*//' | tr -d '\r')
 
     if [ -z "$agent_id" ] || [ -z "$agent_desc" ]; then
         echo "Warning: skipping $agent_file (missing ID or DESCRIPTION)" >&2
@@ -122,6 +146,33 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
     # Fallback for empty agent_name
     if [ -z "$agent_name" ]; then
         agent_name="$agent_id"
+    fi
+
+    # Determine the model ID to emit for the target provider and tier
+    if [ "$PROVIDER" = "opencode" ]; then
+        case "$TIER" in
+            economy)
+                emit_model="${agent_opencode_model_economy:-${agent_opencode_model_balanced:-$agent_opencode_model}}"
+                ;;
+            balanced)
+                emit_model="${agent_opencode_model_balanced:-$agent_opencode_model}"
+                ;;
+            performance|*)
+                emit_model="$agent_opencode_model"
+                ;;
+        esac
+    else
+        case "$TIER" in
+            economy)
+                emit_model="${agent_model_economy:-${agent_model_balanced:-$agent_model}}"
+                ;;
+            balanced)
+                emit_model="${agent_model_balanced:-$agent_model}"
+                ;;
+            performance|*)
+                emit_model="$agent_model"
+                ;;
+        esac
     fi
 
     # Extract body: everything after the first blank line
@@ -145,6 +196,9 @@ $body"
             echo "---"
             echo "name: $agent_name"
             echo "description: $agent_desc"
+            if [ -n "$emit_model" ]; then
+                echo "model: $emit_model"
+            fi
             echo "---"
             echo ""
             echo "# $agent_name"
@@ -156,6 +210,9 @@ $body"
             echo "---"
             echo "name: $agent_name"
             echo "description: $agent_desc"
+            if [ -n "$emit_model" ]; then
+                echo "model: $emit_model"
+            fi
             echo "---"
             echo ""
             echo "# $agent_name"
@@ -167,6 +224,9 @@ $body"
             echo "---"
             echo "name: $agent_name"
             echo "description: $agent_desc"
+            if [ -n "$emit_model" ]; then
+                echo "model: $emit_model"
+            fi
             echo "---"
             echo ""
             echo "# $agent_name"
@@ -178,6 +238,9 @@ $body"
             echo "---"
             echo "name: $agent_name"
             echo "description: $agent_desc"
+            if [ -n "$emit_model" ]; then
+                echo "model: $emit_model"
+            fi
             echo "---"
             echo ""
             echo "# $agent_name"
@@ -189,6 +252,9 @@ $body"
             echo "---"
             echo "name: $agent_name"
             echo "description: $agent_desc"
+            if [ -n "$emit_model" ]; then
+                echo "model: $emit_model"
+            fi
             echo "---"
             echo ""
             echo "# $agent_name"
@@ -197,10 +263,43 @@ $body"
         } > "$CLAUDE_DIR/${agent_id}.md"
     fi
 
+    # Build recommended model lines for AGENTS.md
+    if [ -n "$agent_model" ]; then
+        perf_line="- Performance: \`$agent_model\`"
+        if [ -n "$agent_opencode_model" ]; then
+            perf_line="$perf_line (\`$agent_opencode_model\` on OpenCode)"
+        fi
+        balanced_line=""
+        if [ -n "$agent_model_balanced" ]; then
+            balanced_line="- Balanced: \`$agent_model_balanced\`"
+            if [ -n "$agent_opencode_model_balanced" ]; then
+                balanced_line="$balanced_line (\`$agent_opencode_model_balanced\` on OpenCode)"
+            fi
+        fi
+        economy_line=""
+        if [ -n "$agent_model_economy" ]; then
+            economy_line="- Economy: \`$agent_model_economy\`"
+            if [ -n "$agent_opencode_model_economy" ]; then
+                economy_line="$economy_line (\`$agent_opencode_model_economy\` on OpenCode)"
+            fi
+        fi
+    fi
+
     # Append to AGENTS.md
     {
         echo "### $agent_name — ${agent_desc%%.*}"
         echo "$agent_desc"
+        if [ -n "$agent_model" ]; then
+            echo ""
+            echo "**Recommended models:**"
+            echo "$perf_line"
+            if [ -n "$balanced_line" ]; then
+                echo "$balanced_line"
+            fi
+            if [ -n "$economy_line" ]; then
+                echo "$economy_line"
+            fi
+        fi
         echo ""
     } >> "$MASTER_FILE"
 
@@ -223,19 +322,19 @@ done
 # Print summary
 case "$PROVIDER" in
     github)
-        echo "Generated $count agents for GitHub Copilot ($GITHUB_DIR)"
+        echo "Generated $count agents for GitHub Copilot ($GITHUB_DIR) using $TIER tier"
         ;;
     opencode)
-        echo "Generated $count agents for OpenCode ($OPENCODE_DIR)"
+        echo "Generated $count agents for OpenCode ($OPENCODE_DIR) using $TIER tier"
         ;;
     cursor)
-        echo "Generated $count agents for Cursor ($CURSOR_DIR)"
+        echo "Generated $count agents for Cursor ($CURSOR_DIR) using $TIER tier"
         ;;
     codex)
-        echo "Generated $count agents for Codex ($CODEX_DIR)"
+        echo "Generated $count agents for Codex ($CODEX_DIR) using $TIER tier"
         ;;
     claude)
-        echo "Generated $count agents for Claude Code ($CLAUDE_DIR)"
+        echo "Generated $count agents for Claude Code ($CLAUDE_DIR) using $TIER tier"
         ;;
 esac
 echo "Generated master index ($MASTER_FILE)"
