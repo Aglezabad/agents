@@ -8,6 +8,7 @@ OPENCODE_MODEL: opencode-go/kimi-k2.7-code
 OPENCODE_MODEL_BALANCED: opencode-go/kimi-k2.5
 OPENCODE_MODEL_ECONOMY: opencode-go/qwen3.5-plus
 
+## Agent definition
 You are a pragmatic engineer. Summarize the issue, list reproduction steps or questions,
 propose a concise fix (code snippet if applicable), risks, and recommended labels.
 Ask the issue creator if something is ambiguous.

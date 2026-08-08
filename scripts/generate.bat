@@ -10,7 +10,7 @@ set "CLAUDE_DIR=.claude\agents"
 set "MASTER_FILE=AGENTS.md"
 set "PROVIDER="
 set "TIER=performance"
-set "NO_PREAMBLE=0"
+set "NO_PREAMBLE="
 
 rem Parse arguments
 :parse_args
@@ -28,8 +28,15 @@ if "%~1"=="--tier" (
     goto :parse_args
 )
 if "%~1"=="--no-preamble" (
-    set "NO_PREAMBLE=1"
+    set "NO_PREAMBLE=all"
     shift
+    if not "%~1"=="" (
+        set "arg=%~1"
+        if not "!arg:~0,2!"=="--" (
+            set "NO_PREAMBLE=%~1"
+            shift
+        )
+    )
     goto :parse_args
 )
 if "%~1"=="-h" goto :show_help
@@ -39,11 +46,11 @@ echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier
 exit /b 1
 
 :show_help
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>] [--no-preamble]
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--tier ^<economy^|balanced^|performance^>] [--no-preamble [^<names^>^|all]]
 echo.
 echo Options:
 echo   --tier          Model tier to generate: economy, balanced, or performance (default: performance)
-echo   --no-preamble   Skip injecting the compact-thinking preamble
+echo   --no-preamble   Skip injecting preambles. Accepts a comma-separated list of preamble names, or 'all' to skip every preamble (default: inject all)
 echo.
 echo Providers:
 echo   github   Generate GitHub Copilot agent files (.github\agents\)
@@ -195,27 +202,44 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
         )
     )
 
-    rem Prepend compact-thinking preamble if available
-    if "%NO_PREAMBLE%"=="0" (
-        if exist "preambles\compact-thinking.txt" (
-            for %%p in ("preambles\compact-thinking.txt") do if %%~zp gtr 0 (
-                set "preamble="
-                for /f "usebackq delims=" %%l in ("preambles\compact-thinking.txt") do (
-                    if "!preamble!"=="" (
-                        set "preamble=%%l"
-                    ) else (
-                        set "preamble=!preamble!
-%%l"
-                    )
+    rem Prepend all preambles in sorted order, skipping any excluded via --no-preamble
+    if not "%NO_PREAMBLE%"=="all" (
+        set "preamble_block="
+        for %%f in (preambles\*.txt) do (
+            set "excluded=0"
+            if not "%NO_PREAMBLE%"=="" (
+                set "np=%NO_PREAMBLE:,= %"
+                for %%n in (!np!) do (
+                    if "%%n"=="%%~nf" set "excluded=1"
                 )
-                set "body=!preamble!
+            )
+            if "!excluded!"=="0" (
+                for %%p in ("%%f") do if %%~zp gtr 0 (
+                    set "preamble="
+                    for /f "usebackq delims=" %%l in ("%%f") do (
+                        if "!preamble!"=="" (
+                            set "preamble=%%l"
+                        ) else (
+                            set "preamble=!preamble!
+%%l"
+                        )
+                    )
+                    if "!preamble_block!"=="" (
+                        set "preamble_block=!preamble!"
+                    ) else (
+                        set "preamble_block=!preamble_block!
+
+!preamble!"
+                    )
+                ) else (
+                    echo Warning: %%f is empty; skipping >&2
+                )
+            )
+        )
+        if not "!preamble_block!"=="" (
+            set "body=!preamble_block!
 
 !body!"
-            ) else (
-                echo Warning: preambles\compact-thinking.txt is empty; generating without preamble >&2
-            )
-        ) else (
-            echo Warning: preambles\compact-thinking.txt missing; generating without preamble >&2
         )
     )
 

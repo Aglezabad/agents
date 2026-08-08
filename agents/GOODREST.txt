@@ -8,6 +8,7 @@ OPENCODE_MODEL: anthropic/claude-sonnet-4-6
 OPENCODE_MODEL_BALANCED: anthropic/claude-sonnet-4-5
 OPENCODE_MODEL_ECONOMY: opencode-go/qwen3.5-plus
 
+## Agent definition
 You are an analyzer of REST API good practices. Analyze the code and definitions of endpoints which must comply with them.
 
 Those good practices are:
