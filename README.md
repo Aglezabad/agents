@@ -136,6 +136,41 @@ scripts\check-sync.bat --provider claude
 
 Exits with code 0 if generated files match `agents/`, or 1 if any file is out of sync.
 
+## Preambles
+
+Optional behavior blocks in `preambles/` are injected at the top of every generated agent file. **All preambles are included by default.**
+
+| Preamble | Purpose |
+|----------|---------|
+| `compact-thinking` | Keeps internal reasoning compact and responds in the user's language |
+| `basic-routing` | Uses a simpler model for file/command tasks and the selected model for reasoning |
+
+### Skipping preambles
+
+Pass `--no-preamble` to exclude preambles. It accepts a comma-separated list of preamble names, or `all` to skip every preamble. With no value it also skips all preambles.
+
+**Linux / macOS / WSL:**
+```bash
+# Skip only basic-routing
+./scripts/generate.sh --provider opencode --no-preamble basic-routing
+
+# Skip compact-thinking and basic-routing
+./scripts/generate.sh --provider opencode --no-preamble compact-thinking,basic-routing
+
+# Skip all preambles
+./scripts/generate.sh --provider opencode --no-preamble all
+```
+
+**Windows:**
+```batch
+:: Windows equivalents
+scripts\generate.bat --provider opencode --no-preamble basic-routing
+scripts\generate.bat --provider opencode --no-preamble compact-thinking,basic-routing
+scripts\generate.bat --provider opencode --no-preamble all
+```
+
+To add a new preamble, drop a `name.txt` file in `preambles/`; it is picked up automatically.
+
 ## Adding or Editing Agents
 
 1. Edit the corresponding file in `agents/`

@@ -16,7 +16,7 @@ MASTER_FILE="AGENTS.md"
 
 PROVIDER=""
 TIER="performance"
-NO_PREAMBLE="0"
+NO_PREAMBLE=""
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -30,15 +30,23 @@ while [ $# -gt 0 ]; do
             shift 2
             ;;
         --no-preamble)
-            NO_PREAMBLE="1"
+            NO_PREAMBLE="all"
+            case "$2" in
+                ""|-*)
+                    ;;
+                *)
+                    NO_PREAMBLE="$2"
+                    shift
+                    ;;
+            esac
             shift
             ;;
         -h|--help)
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>] [--no-preamble]"
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>] [--no-preamble [<names>|all]]"
             echo ""
             echo "Options:"
             echo "  --tier          Model tier to generate: economy, balanced, or performance (default: performance)"
-            echo "  --no-preamble   Skip injecting the compact-thinking preamble"
+            echo "  --no-preamble   Skip injecting preambles. Accepts a comma-separated list of preamble names, or 'all' to skip every preamble (default: inject all)"
             echo ""
             echo "Providers:"
             echo "  github   Generate GitHub Copilot agent files (.github/agents/)"
@@ -178,15 +186,36 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
     # Extract body: everything after the first blank line
     body=$(awk 'BEGIN{found=0} !found && /^[[:space:]]*$/ {found=1; next} found {print}' "$agent_file")
 
-    # Prepend compact-thinking preamble if available
-    if [ "$NO_PREAMBLE" != "1" ]; then
-        if [ -f "preambles/compact-thinking.txt" ] && [ -s "preambles/compact-thinking.txt" ]; then
-            preamble=$(cat preambles/compact-thinking.txt)
-            body="$preamble
+    # Prepend all preambles in sorted order, skipping any excluded via --no-preamble
+    if [ "$NO_PREAMBLE" != "all" ]; then
+        preamble_block=""
+        for preamble_file in preambles/*.txt; do
+            [ -e "$preamble_file" ] || continue
+            preamble_name=$(basename "$preamble_file" .txt)
+            if [ -n "$NO_PREAMBLE" ]; then
+                case ",$NO_PREAMBLE," in
+                    *",$preamble_name,"*)
+                        continue
+                        ;;
+                esac
+            fi
+            if [ -s "$preamble_file" ]; then
+                preamble=$(cat "$preamble_file")
+                if [ -z "$preamble_block" ]; then
+                    preamble_block="$preamble"
+                else
+                    preamble_block="$preamble_block
+
+$preamble"
+                fi
+            else
+                echo "Warning: $preamble_file is empty; skipping" >&2
+            fi
+        done
+        if [ -n "$preamble_block" ]; then
+            body="$preamble_block
 
 $body"
-        else
-            echo "Warning: preambles/compact-thinking.txt missing or empty; generating without preamble" >&2
         fi
     fi
 

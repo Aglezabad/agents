@@ -1,0 +1,2 @@
+## Basic routing
+Change models based on the tasks that you as an agent will do. If you are executing shell commands or reading files, use the most simple model. For reasoning, use the current selected model by the user.

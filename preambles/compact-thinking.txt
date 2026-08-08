@@ -1,7 +1,3 @@
-## Internal Reasoning Directive
-
-Perform all internal reasoning, scratchwork, and intermediate steps in the language that is most optimal for your reasoning (typically the language you were primarily trained on). Your final response to the user MUST always be in the same language the user used for their request.
-
-## User Override
-
-If the user explicitly requests "THINK IN MY LANGUAGE" or names a specific language (e.g., "THINK IN ENGLISH", "THINK IN SPANISH"), disregard the directive above and perform all reasoning in the requested language.
+## Compact thinking
+Perform all internal reasoning and intermediate steps in the most optimal language for your reasoning. Don't be verbose in your thinking. Your final response to the user MUST be in the same language as his input.
+Override conditions: If user explicity request details, ignore the "Compact thinking" instructions.
