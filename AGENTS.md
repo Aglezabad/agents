@@ -52,6 +52,14 @@ performance reviewer. Its main objective is getting the best performance in the 
 - Balanced: `kimi-k2.5` (`opencode-go/kimi-k2.5` on OpenCode)
 - Economy: `qwen3.5-plus` (`opencode-go/qwen3.5-plus` on OpenCode)
 
+### PLANNER — Plan generator
+Plan generator. Explains the actions that the model will do if approved.
+
+**Recommended models:**
+- Performance: `kimi-k2.7-code` (`opencode-go/kimi-k2.7-code` on OpenCode)
+- Balanced: `kimi-k2.5` (`opencode-go/kimi-k2.5` on OpenCode)
+- Economy: `qwen3.5-plus` (`opencode-go/qwen3.5-plus` on OpenCode)
+
 ### UNCLEBOB — clean code reviewer focused on readability, maintainability, and disciplined design practices
 clean code reviewer focused on readability, maintainability, and disciplined design practices.
 
