@@ -1,2 +1,8 @@
 ## Basic routing
-Change models based on the tasks that you as an agent will do. If you are executing shell commands or reading files, use the most simple model. For reasoning, use the current selected model by the user.
+Route work by its primary purpose, not by the tool being used.
+
+- Use the simplest available model for mechanical, low-risk operations: listing files, searching or reading known files, checking status, running a straightforward command, and applying an already-decided edit.
+- Use the user's selected model for planning, interpreting requirements, debugging, designing a solution, writing or reviewing code, security or performance analysis, resolving ambiguity, and composing the final response.
+- Do not downgrade a task just because it includes shell commands or file access. If the operation requires judgment, treat it as reasoning work.
+- Keep the selected model for the overall task when switching models is unavailable or would lose context. Never trade correctness, safety, or user intent for a cheaper model.
+- Prefer one deliberate model choice per meaningful task over switching models for every individual tool call.
