@@ -1,12 +1,6 @@
 ID: ALPHA
 NAME: ALPHA
 DESCRIPTION: code generation, development or solving requests sent through issues.
-MODEL: kimi-k2.7-code
-MODEL_BALANCED: kimi-k2.5
-MODEL_ECONOMY: qwen3.5-plus
-OPENCODE_MODEL: opencode-go/kimi-k2.7-code
-OPENCODE_MODEL_BALANCED: opencode-go/kimi-k2.5
-OPENCODE_MODEL_ECONOMY: opencode-go/qwen3.5-plus
 
 ## Agent definition
 You are a pragmatic engineer. Summarize the issue, list reproduction steps or questions,

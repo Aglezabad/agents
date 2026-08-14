@@ -11,7 +11,6 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEMP_DIR="$(mktemp -d)"
 
 PROVIDER=""
-TIER="performance"
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -20,15 +19,8 @@ while [ $# -gt 0 ]; do
             PROVIDER="$2"
             shift 2
             ;;
-        --tier)
-            TIER="$2"
-            shift 2
-            ;;
         -h|--help)
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>]"
-            echo ""
-            echo "Options:"
-            echo "  --tier  Model tier to check: economy, balanced, or performance (default: performance)"
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>"
             echo ""
             echo "Providers:"
             echo "  github   Check GitHub Copilot agent files"
@@ -40,7 +32,7 @@ while [ $# -gt 0 ]; do
             ;;
         *)
             echo "Unknown option: $1" >&2
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>]" >&2
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>" >&2
             exit 1
             ;;
     esac
@@ -59,16 +51,6 @@ case "$PROVIDER" in
     *)
         echo "Error: unknown provider '$PROVIDER'" >&2
         echo "Supported providers: github, opencode, cursor, codex, claude" >&2
-        exit 1
-        ;;
-esac
-
-case "$TIER" in
-    economy|balanced|performance)
-        ;;
-    *)
-        echo "Error: unknown tier '$TIER'" >&2
-        echo "Supported tiers: economy, balanced, performance" >&2
         exit 1
         ;;
 esac
@@ -107,7 +89,7 @@ fi
 # Step 2: Regenerate fresh copies in repo
 echo "Regenerating fresh copies..."
 cd "$REPO_DIR"
-"$SCRIPT_DIR/generate.sh" --provider "$PROVIDER" --tier "$TIER" >/dev/null
+"$SCRIPT_DIR/generate.sh" --provider "$PROVIDER" >/dev/null
 
 # Step 3: Compare
 DIFF_FOUND=0

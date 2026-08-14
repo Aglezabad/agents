@@ -9,7 +9,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 PROVIDER=""
-TIER="performance"
 TARGET_DIR=""
 
 # Parse arguments
@@ -19,15 +18,8 @@ while [ $# -gt 0 ]; do
             PROVIDER="$2"
             shift 2
             ;;
-        --tier)
-            TIER="$2"
-            shift 2
-            ;;
         -h|--help)
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>]"
-            echo ""
-            echo "Options:"
-            echo "  --tier  Model tier to install: economy, balanced, or performance (default: performance)"
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>"
             echo ""
             echo "Providers:"
             echo "  github   Install GitHub Copilot agent files to ~/.config/github-copilot/agents/"
@@ -39,7 +31,7 @@ while [ $# -gt 0 ]; do
             ;;
         *)
             echo "Unknown option: $1" >&2
-            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude> [--tier <economy|balanced|performance>]" >&2
+            echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>" >&2
             exit 1
             ;;
     esac
@@ -58,16 +50,6 @@ case "$PROVIDER" in
     *)
         echo "Error: unknown provider '$PROVIDER'" >&2
         echo "Supported providers: github, opencode, cursor, codex, claude" >&2
-        exit 1
-        ;;
-esac
-
-case "$TIER" in
-    economy|balanced|performance)
-        ;;
-    *)
-        echo "Error: unknown tier '$TIER'" >&2
-        echo "Supported tiers: economy, balanced, performance" >&2
         exit 1
         ;;
 esac
@@ -95,8 +77,8 @@ case "$PROVIDER" in
         ;;
 esac
 
-echo "Running generator for provider: $PROVIDER, tier: $TIER..."
-"$SCRIPT_DIR/generate.sh" --provider "$PROVIDER" --tier "$TIER"
+echo "Running generator for provider: $PROVIDER..."
+"$SCRIPT_DIR/generate.sh" --provider "$PROVIDER"
 
 if [ ! -d "$TARGET_DIR" ]; then
     echo "Creating target directory: $TARGET_DIR"
