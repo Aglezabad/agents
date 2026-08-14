@@ -13,6 +13,9 @@ SOLID principle checker and fixer. Checks whether the code complies with SOLID p
 ### GOODREST — an analyzer of good practices defining REST APIs
 an analyzer of good practices defining REST APIs
 
+### IOSGUIDER — iOS and CarPlay design-guidelines reviewer for projects and provided images
+iOS and CarPlay design-guidelines reviewer for projects and provided images.
+
 ### OMEGA — reviewer whose main objective is correctness and testing the pull requests generated
 reviewer whose main objective is correctness and testing the pull requests generated.
 

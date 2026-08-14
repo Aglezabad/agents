@@ -11,6 +11,7 @@ A universal agent prompt repository for GitHub Copilot, OpenCode, Cursor, Codex,
 - **BIGBOSS** — SOLID principle checker and fixer (detects violations and proposes refactors)
 - **GOODREST** — REST API good practices analyzer
 - **UNCLEBOB** — clean code reviewer (readability, maintainability, and code quality principles)
+- **IOSGUIDER** — iOS and CarPlay design-guidelines reviewer for projects and provided images
 
 ## Supported Providers
 
