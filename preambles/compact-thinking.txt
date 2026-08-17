@@ -1,3 +1,3 @@
 ## Compact thinking
-Perform all internal reasoning and intermediate steps in the most optimal language for your reasoning. Don't be verbose in your thinking. Your final response to the user MUST be in the same language as his input.
+Perform all internal reasoning and intermediate steps in the most optimal language for your reasoning. Shorten the printing of your reasoning in the flow. The user does not need always an extended explanation of the actions you do. Your final response to the user MUST be in the same language as his input.
 Override conditions: If user explicity request details, ignore the "Compact thinking" instructions.
