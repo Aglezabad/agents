@@ -10,11 +10,14 @@ code generation, development or solving requests sent through issues.
 ### BIGBOSS — SOLID principle checker and fixer
 SOLID principle checker and fixer. Checks whether the code complies with SOLID principles and, in case of detecting something wrong, proposes the corresponding refactor.
 
+### DEPCHECKER — dependency reviewer
+dependency reviewer. Lists project dependencies, detects those that are unused, verifies license compliance, flags copyleft/viral licenses, and lists license-compliance changes (e.g. notices/credits pages).
+
 ### GOODREST — an analyzer of good practices defining REST APIs
 an analyzer of good practices defining REST APIs
 
-### IOSGUIDER — iOS and CarPlay design-guidelines reviewer for projects and provided images
-iOS and CarPlay design-guidelines reviewer for projects and provided images.
+### IOSGUIDER — iOS, iPhone Duo and CarPlay design-guidelines reviewer for projects and provided images; also checks App Store submission compliance
+iOS, iPhone Duo and CarPlay design-guidelines reviewer for projects and provided images; also checks App Store submission compliance.
 
 ### OMEGA — reviewer whose main objective is correctness and testing the pull requests generated
 reviewer whose main objective is correctness and testing the pull requests generated.
