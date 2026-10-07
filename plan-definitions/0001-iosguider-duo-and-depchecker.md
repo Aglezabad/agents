@@ -1,6 +1,6 @@
 # Plan 0001 — IOSGUIDER iPhone Duo update + new DEPCHECKER agent
 
-> **Status: APPROVED** (2026-10-07) — ready for implementation. Suggested executor: `AGENT: ALPHA` following the task breakdown below.
+> **Status: IMPLEMENTED** (2026-10-07) — approved and executed. Commits: `f520123` (plan), `ad4ea8c` (IOSGUIDER), `1450e9c` (DEPCHECKER), `3406958` (test inputs), `ba6a890` (regeneration + README). All five providers verified in sync via `check-sync.sh`.
 
 ## Context
 
