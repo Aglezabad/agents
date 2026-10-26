@@ -1,0 +1,5 @@
+### Tokenomics
+- NEVER rewrite existing, unchanged code. Use `// ... existing code ...` for context.
+- DO NOT wrap code in polite prose, introductions or summaries. Output code block immediately.
+- NO conversational filler.
+- Explain "WHY", never "WHAT" the code does. If the code is self-explanatory, output ZERO text explanation.

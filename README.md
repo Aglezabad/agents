@@ -140,7 +140,7 @@ Exits with code 0 if generated files match `agents/`, or 1 if any file is out of
 
 ## Preambles
 
-Optional behavior blocks in `preambles/` are injected at the top of every generated agent file. **All preambles are included by default.**
+Optional behavior blocks in `preambles/` are injected into every generated agent file at the location of the `[**PREAMBLES**]` marker — the marker line is replaced by the preamble content. **All preambles are included by default.** If an agent file has no marker, preambles are skipped for that agent.
 
 | Preamble | Purpose |
 |----------|---------|
@@ -170,7 +170,7 @@ To add a new preamble, drop a `name.txt` file in `preambles/`; it is picked up a
 
 ## Adding or Editing Agents
 
-1. Edit the corresponding file in `agents/`
+1. Edit the corresponding file in `agents/` — keep the `[**PREAMBLES**]` marker where preambles should be injected
 2. Run `scripts/generate.sh --provider <name>` (or `.bat`)
 3. Commit both `agents/` and the generated files
 

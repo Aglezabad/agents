@@ -7,15 +7,15 @@
 set -e
 
 AGENTS_DIR="agents"
-GITHUB_DIR=".github/agents"
-OPENCODE_DIR=".opencode/agents"
-CURSOR_DIR=".cursor/agents"
-CODEX_DIR=".codex/agents"
-CLAUDE_DIR=".claude/agents"
+PREAMBLES_DIR="preambles"
 MASTER_FILE="AGENTS.md"
+PREAMBLE_TAG='[**PREAMBLES**]'
 
 PROVIDER=""
 NO_PREAMBLE=""
+OUT_DIR=""
+EXT=""
+LABEL=""
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -58,7 +58,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# Validate provider
+# Validate provider and resolve output dir, file extension, and display label
 if [ -z "$PROVIDER" ]; then
     echo "Error: --provider is required" >&2
     echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>" >&2
@@ -66,7 +66,30 @@ if [ -z "$PROVIDER" ]; then
 fi
 
 case "$PROVIDER" in
-    github|opencode|cursor|codex|claude)
+    github)
+        OUT_DIR=".github/agents"
+        EXT="agent.md"
+        LABEL="GitHub Copilot"
+        ;;
+    opencode)
+        OUT_DIR=".opencode/agents"
+        EXT="md"
+        LABEL="OpenCode"
+        ;;
+    cursor)
+        OUT_DIR=".cursor/agents"
+        EXT="md"
+        LABEL="Cursor"
+        ;;
+    codex)
+        OUT_DIR=".codex/agents"
+        EXT="md"
+        LABEL="GitHub Codex"
+        ;;
+    claude)
+        OUT_DIR=".claude/agents"
+        EXT="md"
+        LABEL="Claude Code"
         ;;
     *)
         echo "Error: unknown provider '$PROVIDER'" >&2
@@ -81,21 +104,35 @@ if [ ! -d "$AGENTS_DIR" ]; then
 fi
 
 # Create and clean only the target directory
-if [ "$PROVIDER" = "github" ]; then
-    mkdir -p "$GITHUB_DIR"
-    rm -f "$GITHUB_DIR"/*.agent.md
-elif [ "$PROVIDER" = "opencode" ]; then
-    mkdir -p "$OPENCODE_DIR"
-    rm -f "$OPENCODE_DIR"/*.md
-elif [ "$PROVIDER" = "cursor" ]; then
-    mkdir -p "$CURSOR_DIR"
-    rm -f "$CURSOR_DIR"/*.md
-elif [ "$PROVIDER" = "codex" ]; then
-    mkdir -p "$CODEX_DIR"
-    rm -f "$CODEX_DIR"/*.md
-elif [ "$PROVIDER" = "claude" ]; then
-    mkdir -p "$CLAUDE_DIR"
-    rm -f "$CLAUDE_DIR"/*.md
+mkdir -p "$OUT_DIR"
+rm -f "$OUT_DIR"/*."$EXT"
+
+# Build the preamble block once (sorted order, minus any excluded via --no-preamble)
+PREAMBLE_BLOCK=""
+if [ "$NO_PREAMBLE" != "all" ]; then
+    for preamble_file in "$PREAMBLES_DIR"/*.txt; do
+        [ -e "$preamble_file" ] || continue
+        preamble_name=$(basename "$preamble_file" .txt)
+        if [ -n "$NO_PREAMBLE" ]; then
+            case ",$NO_PREAMBLE," in
+                *",$preamble_name,"*)
+                    continue
+                    ;;
+            esac
+        fi
+        if [ -s "$preamble_file" ]; then
+            preamble=$(cat "$preamble_file")
+            if [ -z "$PREAMBLE_BLOCK" ]; then
+                PREAMBLE_BLOCK="$preamble"
+            else
+                PREAMBLE_BLOCK="$PREAMBLE_BLOCK
+
+$preamble"
+            fi
+        else
+            echo "Warning: $preamble_file is empty; skipping" >&2
+        fi
+    done
 fi
 
 # Start AGENTS.md (always generated)
@@ -135,96 +172,29 @@ for agent_file in "$AGENTS_DIR"/*.txt; do
     # Extract body: everything after the first blank line
     body=$(awk 'BEGIN{found=0} !found && /^[[:space:]]*$/ {found=1; next} found {print}' "$agent_file")
 
-    # Prepend all preambles in sorted order, skipping any excluded via --no-preamble
-    if [ "$NO_PREAMBLE" != "all" ]; then
-        preamble_block=""
-        for preamble_file in preambles/*.txt; do
-            [ -e "$preamble_file" ] || continue
-            preamble_name=$(basename "$preamble_file" .txt)
-            if [ -n "$NO_PREAMBLE" ]; then
-                case ",$NO_PREAMBLE," in
-                    *",$preamble_name,"*)
-                        continue
-                        ;;
-                esac
-            fi
-            if [ -s "$preamble_file" ]; then
-                preamble=$(cat "$preamble_file")
-                if [ -z "$preamble_block" ]; then
-                    preamble_block="$preamble"
-                else
-                    preamble_block="$preamble_block
-
-$preamble"
-                fi
-            else
-                echo "Warning: $preamble_file is empty; skipping" >&2
-            fi
-        done
-        if [ -n "$preamble_block" ]; then
-            body="$preamble_block
-
-$body"
-        fi
+    # Inject preambles at the [**PREAMBLES**] tag; when no preambles are
+    # selected, the tag line is dropped. Agents without the tag get no
+    # preambles.
+    if printf '%s\n' "$body" | grep -qF -- "$PREAMBLE_TAG"; then
+        body=$(printf '%s\n' "$body" | awk -v tag="$PREAMBLE_TAG" -v block="$PREAMBLE_BLOCK" '
+            index($0, tag) { if (block != "") print block; next }
+            { print }
+        ')
+    elif [ -n "$PREAMBLE_BLOCK" ]; then
+        echo "Warning: $agent_file has no $PREAMBLE_TAG tag; skipping preambles" >&2
     fi
 
-    # Generate files for the selected provider
-    if [ "$PROVIDER" = "github" ]; then
-        {
-            echo "---"
-            echo "name: $agent_name"
-            echo "description: $agent_desc"
-            echo "---"
-            echo ""
-            echo "# $agent_name"
-            echo ""
-            printf '%s\n' "$body"
-        } > "$GITHUB_DIR/${agent_id}.agent.md"
-    elif [ "$PROVIDER" = "opencode" ]; then
-        {
-            echo "---"
-            echo "name: $agent_name"
-            echo "description: $agent_desc"
-            echo "---"
-            echo ""
-            echo "# $agent_name"
-            echo ""
-            printf '%s\n' "$body"
-        } > "$OPENCODE_DIR/${agent_id}.md"
-    elif [ "$PROVIDER" = "cursor" ]; then
-        {
-            echo "---"
-            echo "name: $agent_name"
-            echo "description: $agent_desc"
-            echo "---"
-            echo ""
-            echo "# $agent_name"
-            echo ""
-            printf '%s\n' "$body"
-        } > "$CURSOR_DIR/${agent_id}.md"
-    elif [ "$PROVIDER" = "codex" ]; then
-        {
-            echo "---"
-            echo "name: $agent_name"
-            echo "description: $agent_desc"
-            echo "---"
-            echo ""
-            echo "# $agent_name"
-            echo ""
-            printf '%s\n' "$body"
-        } > "$CODEX_DIR/${agent_id}.md"
-    elif [ "$PROVIDER" = "claude" ]; then
-        {
-            echo "---"
-            echo "name: $agent_name"
-            echo "description: $agent_desc"
-            echo "---"
-            echo ""
-            echo "# $agent_name"
-            echo ""
-            printf '%s\n' "$body"
-        } > "$CLAUDE_DIR/${agent_id}.md"
-    fi
+    # Generate file for the selected provider
+    {
+        echo "---"
+        echo "name: $agent_name"
+        echo "description: $agent_desc"
+        echo "---"
+        echo ""
+        echo "# $agent_name"
+        echo ""
+        printf '%s\n' "$body"
+    } > "$OUT_DIR/${agent_id}.$EXT"
 
     # Append to AGENTS.md
     {
@@ -249,22 +219,5 @@ done
     echo "- The agent named in the AGENT: prefix will determine the style of response (generator, reviewer, security, or performance)."
 } >> "$MASTER_FILE"
 
-# Print summary
-case "$PROVIDER" in
-    github)
-        echo "Generated $count agents for GitHub Copilot ($GITHUB_DIR)"
-        ;;
-    opencode)
-        echo "Generated $count agents for OpenCode ($OPENCODE_DIR)"
-        ;;
-    cursor)
-        echo "Generated $count agents for Cursor ($CURSOR_DIR)"
-        ;;
-    codex)
-        echo "Generated $count agents for Codex ($CODEX_DIR)"
-        ;;
-    claude)
-        echo "Generated $count agents for Claude Code ($CLAUDE_DIR)"
-        ;;
-esac
+echo "Generated $count agents for $LABEL ($OUT_DIR)"
 echo "Generated master index ($MASTER_FILE)"

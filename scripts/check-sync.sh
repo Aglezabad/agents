@@ -11,6 +11,8 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEMP_DIR="$(mktemp -d)"
 
 PROVIDER=""
+OUT_DIR=""
+EXT=""
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -38,7 +40,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# Validate provider
+# Validate provider and resolve output dir and file extension
 if [ -z "$PROVIDER" ]; then
     echo "Error: --provider is required" >&2
     echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>" >&2
@@ -46,7 +48,25 @@ if [ -z "$PROVIDER" ]; then
 fi
 
 case "$PROVIDER" in
-    github|opencode|cursor|codex|claude)
+    github)
+        OUT_DIR=".github/agents"
+        EXT="agent.md"
+        ;;
+    opencode)
+        OUT_DIR=".opencode/agents"
+        EXT="md"
+        ;;
+    cursor)
+        OUT_DIR=".cursor/agents"
+        EXT="md"
+        ;;
+    codex)
+        OUT_DIR=".codex/agents"
+        EXT="md"
+        ;;
+    claude)
+        OUT_DIR=".claude/agents"
+        EXT="md"
         ;;
     *)
         echo "Error: unknown provider '$PROVIDER'" >&2
@@ -58,28 +78,9 @@ esac
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # Step 1: Save current generated files to temp BEFORE regenerating
-mkdir -p "$TEMP_DIR/.github/agents" "$TEMP_DIR/.opencode/agents" "$TEMP_DIR/.cursor/agents" "$TEMP_DIR/.codex/agents" "$TEMP_DIR/.claude/agents"
-
-if [ "$PROVIDER" = "github" ]; then
-    if [ -d "$REPO_DIR/.github/agents" ]; then
-        cp "$REPO_DIR/.github/agents"/*.agent.md "$TEMP_DIR/.github/agents/" 2>/dev/null || true
-    fi
-elif [ "$PROVIDER" = "opencode" ]; then
-    if [ -d "$REPO_DIR/.opencode/agents" ]; then
-        cp "$REPO_DIR/.opencode/agents"/*.md "$TEMP_DIR/.opencode/agents/" 2>/dev/null || true
-    fi
-elif [ "$PROVIDER" = "cursor" ]; then
-    if [ -d "$REPO_DIR/.cursor/agents" ]; then
-        cp "$REPO_DIR/.cursor/agents"/*.md "$TEMP_DIR/.cursor/agents/" 2>/dev/null || true
-    fi
-elif [ "$PROVIDER" = "codex" ]; then
-    if [ -d "$REPO_DIR/.codex/agents" ]; then
-        cp "$REPO_DIR/.codex/agents"/*.md "$TEMP_DIR/.codex/agents/" 2>/dev/null || true
-    fi
-elif [ "$PROVIDER" = "claude" ]; then
-    if [ -d "$REPO_DIR/.claude/agents" ]; then
-        cp "$REPO_DIR/.claude/agents"/*.md "$TEMP_DIR/.claude/agents/" 2>/dev/null || true
-    fi
+mkdir -p "$TEMP_DIR/$OUT_DIR"
+if [ -d "$REPO_DIR/$OUT_DIR" ]; then
+    cp "$REPO_DIR/$OUT_DIR"/*."$EXT" "$TEMP_DIR/$OUT_DIR/" 2>/dev/null || true
 fi
 
 if [ -f "$REPO_DIR/AGENTS.md" ]; then
@@ -91,111 +92,29 @@ echo "Regenerating fresh copies..."
 cd "$REPO_DIR"
 "$SCRIPT_DIR/generate.sh" --provider "$PROVIDER" >/dev/null
 
-# Step 3: Compare
+# Step 3: Compare provider-specific directory
 DIFF_FOUND=0
 
-# Compare provider-specific directory
-if [ "$PROVIDER" = "github" ]; then
-    for f in "$REPO_DIR/.github/agents"/*.agent.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$TEMP_DIR/.github/agents/$fname" ]; then
-            echo "MISMATCH: .github/agents/$fname (new file, not in previous generation)"
-            DIFF_FOUND=1
-        elif ! diff -q "$f" "$TEMP_DIR/.github/agents/$fname" >/dev/null 2>&1; then
-            echo "MISMATCH: .github/agents/$fname"
-            DIFF_FOUND=1
-        fi
-    done
-    for f in "$TEMP_DIR/.github/agents"/*.agent.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$REPO_DIR/.github/agents/$fname" ]; then
-            echo "MISMATCH: .github/agents/$fname (file removed)"
-            DIFF_FOUND=1
-        fi
-    done
-elif [ "$PROVIDER" = "opencode" ]; then
-    for f in "$REPO_DIR/.opencode/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$TEMP_DIR/.opencode/agents/$fname" ]; then
-            echo "MISMATCH: .opencode/agents/$fname (new file, not in previous generation)"
-            DIFF_FOUND=1
-        elif ! diff -q "$f" "$TEMP_DIR/.opencode/agents/$fname" >/dev/null 2>&1; then
-            echo "MISMATCH: .opencode/agents/$fname"
-            DIFF_FOUND=1
-        fi
-    done
-    for f in "$TEMP_DIR/.opencode/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$REPO_DIR/.opencode/agents/$fname" ]; then
-            echo "MISMATCH: .opencode/agents/$fname (file removed)"
-            DIFF_FOUND=1
-        fi
-    done
-elif [ "$PROVIDER" = "cursor" ]; then
-    for f in "$REPO_DIR/.cursor/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$TEMP_DIR/.cursor/agents/$fname" ]; then
-            echo "MISMATCH: .cursor/agents/$fname (new file, not in previous generation)"
-            DIFF_FOUND=1
-        elif ! diff -q "$f" "$TEMP_DIR/.cursor/agents/$fname" >/dev/null 2>&1; then
-            echo "MISMATCH: .cursor/agents/$fname"
-            DIFF_FOUND=1
-        fi
-    done
-    for f in "$TEMP_DIR/.cursor/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$REPO_DIR/.cursor/agents/$fname" ]; then
-            echo "MISMATCH: .cursor/agents/$fname (file removed)"
-            DIFF_FOUND=1
-        fi
-    done
-elif [ "$PROVIDER" = "codex" ]; then
-    for f in "$REPO_DIR/.codex/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$TEMP_DIR/.codex/agents/$fname" ]; then
-            echo "MISMATCH: .codex/agents/$fname (new file, not in previous generation)"
-            DIFF_FOUND=1
-        elif ! diff -q "$f" "$TEMP_DIR/.codex/agents/$fname" >/dev/null 2>&1; then
-            echo "MISMATCH: .codex/agents/$fname"
-            DIFF_FOUND=1
-        fi
-    done
-    for f in "$TEMP_DIR/.codex/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$REPO_DIR/.codex/agents/$fname" ]; then
-            echo "MISMATCH: .codex/agents/$fname (file removed)"
-            DIFF_FOUND=1
-        fi
-    done
-elif [ "$PROVIDER" = "claude" ]; then
-    for f in "$REPO_DIR/.claude/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$TEMP_DIR/.claude/agents/$fname" ]; then
-            echo "MISMATCH: .claude/agents/$fname (new file, not in previous generation)"
-            DIFF_FOUND=1
-        elif ! diff -q "$f" "$TEMP_DIR/.claude/agents/$fname" >/dev/null 2>&1; then
-            echo "MISMATCH: .claude/agents/$fname"
-            DIFF_FOUND=1
-        fi
-    done
-    for f in "$TEMP_DIR/.claude/agents"/*.md; do
-        [ -e "$f" ] || continue
-        fname=$(basename "$f")
-        if [ ! -f "$REPO_DIR/.claude/agents/$fname" ]; then
-            echo "MISMATCH: .claude/agents/$fname (file removed)"
-            DIFF_FOUND=1
-        fi
-    done
-fi
+for f in "$REPO_DIR/$OUT_DIR"/*."$EXT"; do
+    [ -e "$f" ] || continue
+    fname=$(basename "$f")
+    if [ ! -f "$TEMP_DIR/$OUT_DIR/$fname" ]; then
+        echo "MISMATCH: $OUT_DIR/$fname (new file, not in previous generation)"
+        DIFF_FOUND=1
+    elif ! diff -q "$f" "$TEMP_DIR/$OUT_DIR/$fname" >/dev/null 2>&1; then
+        echo "MISMATCH: $OUT_DIR/$fname"
+        DIFF_FOUND=1
+    fi
+done
+
+for f in "$TEMP_DIR/$OUT_DIR"/*."$EXT"; do
+    [ -e "$f" ] || continue
+    fname=$(basename "$f")
+    if [ ! -f "$REPO_DIR/$OUT_DIR/$fname" ]; then
+        echo "MISMATCH: $OUT_DIR/$fname (file removed)"
+        DIFF_FOUND=1
+    fi
+done
 
 # Compare AGENTS.md
 if [ ! -f "$TEMP_DIR/AGENTS.md" ]; then

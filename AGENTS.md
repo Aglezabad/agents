@@ -4,11 +4,11 @@ This file centralizes the agent definitions available in this repository. When i
 
 ---
 
-### ALPHA — code generation, development or solving requests sent through issues
-code generation, development or solving requests sent through issues.
+### ALPHA — code generation and development
+code generation and development.
 
-### BIGBOSS — SOLID principle checker and fixer
-SOLID principle checker and fixer. Checks whether the code complies with SOLID principles and, in case of detecting something wrong, proposes the corresponding refactor.
+### BIGBOSS — SOLID principle checker
+SOLID principle checker.
 
 ### DEPCHECKER — dependency reviewer
 dependency reviewer. Lists project dependencies, detects those that are unused, verifies license compliance, flags copyleft/viral licenses, and lists license-compliance changes (e.g. notices/credits pages).

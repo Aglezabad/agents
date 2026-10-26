@@ -2,9 +2,11 @@
 setlocal
 
 set "SCRIPT_DIR=%~dp0"
-set "REPO_DIR=%SCRIPT_DIR%.."
+for %%I in ("%SCRIPT_DIR%..") do set "REPO_DIR=%%~fI"
 set "TEMP_DIR=%TEMP%\agent-sync-check-%RANDOM%"
 set "PROVIDER="
+set "OUT_DIR="
+set "EXT="
 
 rem Parse arguments
 :parse_args
@@ -34,51 +36,44 @@ exit /b 0
 
 :done_parsing
 
-rem Validate provider
+rem Validate provider and resolve output dir and file extension
 if "%PROVIDER%"=="" (
     echo Error: --provider is required >&2
     echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
     exit /b 1
 )
 
-if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%"=="cursor" if not "%PROVIDER%"=="codex" if not "%PROVIDER%"=="claude" (
+if "%PROVIDER%"=="github" (
+    set "OUT_DIR=.github\agents"
+    set "EXT=agent.md"
+)
+if "%PROVIDER%"=="opencode" (
+    set "OUT_DIR=.opencode\agents"
+    set "EXT=md"
+)
+if "%PROVIDER%"=="cursor" (
+    set "OUT_DIR=.cursor\agents"
+    set "EXT=md"
+)
+if "%PROVIDER%"=="codex" (
+    set "OUT_DIR=.codex\agents"
+    set "EXT=md"
+)
+if "%PROVIDER%"=="claude" (
+    set "OUT_DIR=.claude\agents"
+    set "EXT=md"
+)
+if "%OUT_DIR%"=="" (
     echo Error: unknown provider '%PROVIDER%' >&2
     echo Supported providers: github, opencode, cursor, codex, claude >&2
     exit /b 1
 )
 
-mkdir "%TEMP_DIR%"
-mkdir "%TEMP_DIR%\.github\agents"
-mkdir "%TEMP_DIR%\.opencode\agents"
-mkdir "%TEMP_DIR%\.cursor\agents"
-mkdir "%TEMP_DIR%\.codex\agents"
-mkdir "%TEMP_DIR%\.claude\agents"
+mkdir "%TEMP_DIR%\%OUT_DIR%"
 
 echo Saving current generated files to temp...
-if "%PROVIDER%"=="github" (
-    if exist "%REPO_DIR%\.github\agents\*.agent.md" (
-        xcopy /y /q "%REPO_DIR%\.github\agents\*.agent.md" "%TEMP_DIR%\.github\agents\" >nul
-    )
-)
-if "%PROVIDER%"=="opencode" (
-    if exist "%REPO_DIR%\.opencode\agents\*.md" (
-        xcopy /y /q "%REPO_DIR%\.opencode\agents\*.md" "%TEMP_DIR%\.opencode\agents\" >nul
-    )
-)
-if "%PROVIDER%"=="cursor" (
-    if exist "%REPO_DIR%\.cursor\agents\*.md" (
-        xcopy /y /q "%REPO_DIR%\.cursor\agents\*.md" "%TEMP_DIR%\.cursor\agents\" >nul
-    )
-)
-if "%PROVIDER%"=="codex" (
-    if exist "%REPO_DIR%\.codex\agents\*.md" (
-        xcopy /y /q "%REPO_DIR%\.codex\agents\*.md" "%TEMP_DIR%\.codex\agents\" >nul
-    )
-)
-if "%PROVIDER%"=="claude" (
-    if exist "%REPO_DIR%\.claude\agents\*.md" (
-        xcopy /y /q "%REPO_DIR%\.claude\agents\*.md" "%TEMP_DIR%\.claude\agents\" >nul
-    )
+if exist "%REPO_DIR%\%OUT_DIR%\*.%EXT%" (
+    xcopy /y /q "%REPO_DIR%\%OUT_DIR%\*.%EXT%" "%TEMP_DIR%\%OUT_DIR%\" >nul
 )
 if exist "%REPO_DIR%\AGENTS.md" (
     copy /y "%REPO_DIR%\AGENTS.md" "%TEMP_DIR%\" >nul
@@ -91,116 +86,27 @@ popd
 
 set DIFF_FOUND=0
 
-if "%PROVIDER%"=="github" (
-    for %%f in ("%REPO_DIR%\.github\agents\*.agent.md") do (
-        set "fname=%%~nxf"
-        if not exist "%TEMP_DIR%\.github\agents\%%~nxf" (
-            echo MISMATCH: .github\agents\%%~nxf ^(new file, not in previous generation^)
-            set DIFF_FOUND=1
-        ) else (
-            fc /b "%%f" "%TEMP_DIR%\.github\agents\%%~nxf" >nul
-            if errorlevel 1 (
-                echo MISMATCH: .github\agents\%%~nxf
-                set DIFF_FOUND=1
-            )
-        )
-    )
-    for %%f in ("%TEMP_DIR%\.github\agents\*.agent.md") do (
-        if not exist "%REPO_DIR%\.github\agents\%%~nxf" (
-            echo MISMATCH: .github\agents\%%~nxf ^(file removed^)
+rem Compare provider-specific directory
+for %%f in ("%REPO_DIR%\%OUT_DIR%\*.%EXT%") do (
+    if not exist "%TEMP_DIR%\%OUT_DIR%\%%~nxf" (
+        echo MISMATCH: %OUT_DIR%\%%~nxf ^(new file, not in previous generation^)
+        set DIFF_FOUND=1
+    ) else (
+        fc /b "%%f" "%TEMP_DIR%\%OUT_DIR%\%%~nxf" >nul
+        if errorlevel 1 (
+            echo MISMATCH: %OUT_DIR%\%%~nxf
             set DIFF_FOUND=1
         )
     )
 )
-
-if "%PROVIDER%"=="opencode" (
-    for %%f in ("%REPO_DIR%\.opencode\agents\*.md") do (
-        set "fname=%%~nxf"
-        if not exist "%TEMP_DIR%\.opencode\agents\%%~nxf" (
-            echo MISMATCH: .opencode\agents\%%~nxf ^(new file, not in previous generation^)
-            set DIFF_FOUND=1
-        ) else (
-            fc /b "%%f" "%TEMP_DIR%\.opencode\agents\%%~nxf" >nul
-            if errorlevel 1 (
-                echo MISMATCH: .opencode\agents\%%~nxf
-                set DIFF_FOUND=1
-            )
-        )
-    )
-    for %%f in ("%TEMP_DIR%\.opencode\agents\*.md") do (
-        if not exist "%REPO_DIR%\.opencode\agents\%%~nxf" (
-            echo MISMATCH: .opencode\agents\%%~nxf ^(file removed^)
-            set DIFF_FOUND=1
-        )
+for %%f in ("%TEMP_DIR%\%OUT_DIR%\*.%EXT%") do (
+    if not exist "%REPO_DIR%\%OUT_DIR%\%%~nxf" (
+        echo MISMATCH: %OUT_DIR%\%%~nxf ^(file removed^)
+        set DIFF_FOUND=1
     )
 )
 
-if "%PROVIDER%"=="cursor" (
-    for %%f in ("%REPO_DIR%\.cursor\agents\*.md") do (
-        set "fname=%%~nxf"
-        if not exist "%TEMP_DIR%\.cursor\agents\%%~nxf" (
-            echo MISMATCH: .cursor\agents\%%~nxf ^(new file, not in previous generation^)
-            set DIFF_FOUND=1
-        ) else (
-            fc /b "%%f" "%TEMP_DIR%\.cursor\agents\%%~nxf" >nul
-            if errorlevel 1 (
-                echo MISMATCH: .cursor\agents\%%~nxf
-                set DIFF_FOUND=1
-            )
-        )
-    )
-    for %%f in ("%TEMP_DIR%\.cursor\agents\*.md") do (
-        if not exist "%REPO_DIR%\.cursor\agents\%%~nxf" (
-            echo MISMATCH: .cursor\agents\%%~nxf ^(file removed^)
-            set DIFF_FOUND=1
-        )
-    )
-)
-
-if "%PROVIDER%"=="codex" (
-    for %%f in ("%REPO_DIR%\.codex\agents\*.md") do (
-        set "fname=%%~nxf"
-        if not exist "%TEMP_DIR%\.codex\agents\%%~nxf" (
-            echo MISMATCH: .codex\agents\%%~nxf ^(new file, not in previous generation^)
-            set DIFF_FOUND=1
-        ) else (
-            fc /b "%%f" "%TEMP_DIR%\.codex\agents\%%~nxf" >nul
-            if errorlevel 1 (
-                echo MISMATCH: .codex\agents\%%~nxf
-                set DIFF_FOUND=1
-            )
-        )
-    )
-    for %%f in ("%TEMP_DIR%\.codex\agents\*.md") do (
-        if not exist "%REPO_DIR%\.codex\agents\%%~nxf" (
-            echo MISMATCH: .codex\agents\%%~nxf ^(file removed^)
-            set DIFF_FOUND=1
-        )
-    )
-)
-
-if "%PROVIDER%"=="claude" (
-    for %%f in ("%REPO_DIR%\.claude\agents\*.md") do (
-        set "fname=%%~nxf"
-        if not exist "%TEMP_DIR%\.claude\agents\%%~nxf" (
-            echo MISMATCH: .claude\agents\%%~nxf ^(new file, not in previous generation^)
-            set DIFF_FOUND=1
-        ) else (
-            fc /b "%%f" "%TEMP_DIR%\.claude\agents\%%~nxf" >nul
-            if errorlevel 1 (
-                echo MISMATCH: .claude\agents\%%~nxf
-                set DIFF_FOUND=1
-            )
-        )
-    )
-    for %%f in ("%TEMP_DIR%\.claude\agents\*.md") do (
-        if not exist "%REPO_DIR%\.claude\agents\%%~nxf" (
-            echo MISMATCH: .claude\agents\%%~nxf ^(file removed^)
-            set DIFF_FOUND=1
-        )
-    )
-)
-
+rem Compare AGENTS.md
 if exist "%REPO_DIR%\AGENTS.md" (
     if not exist "%TEMP_DIR%\AGENTS.md" (
         echo MISMATCH: AGENTS.md ^(new file, not in previous generation^)

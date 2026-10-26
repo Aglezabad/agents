@@ -10,6 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 PROVIDER=""
 TARGET_DIR=""
+OUT_DIR=""
+EXT=""
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -37,7 +39,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# Validate provider
+# Validate provider and resolve source dir, file extension, and target directory
 if [ -z "$PROVIDER" ]; then
     echo "Error: --provider is required" >&2
     echo "Usage: $0 --provider <github|opencode|cursor|codex|claude>" >&2
@@ -45,24 +47,19 @@ if [ -z "$PROVIDER" ]; then
 fi
 
 case "$PROVIDER" in
-    github|opencode|cursor|codex|claude)
-        ;;
-    *)
-        echo "Error: unknown provider '$PROVIDER'" >&2
-        echo "Supported providers: github, opencode, cursor, codex, claude" >&2
-        exit 1
-        ;;
-esac
-
-# Set target directory based on provider
-case "$PROVIDER" in
     github)
+        OUT_DIR=".github/agents"
+        EXT="agent.md"
         TARGET_DIR="$HOME/.config/github-copilot/agents"
         ;;
     opencode)
+        OUT_DIR=".opencode/agents"
+        EXT="md"
         TARGET_DIR="$HOME/.config/opencode/agents"
         ;;
     cursor)
+        OUT_DIR=".cursor/agents"
+        EXT="md"
         if [ "$(uname -s)" = "Darwin" ]; then
             TARGET_DIR="$HOME/.cursor/agents"
         else
@@ -70,10 +67,19 @@ case "$PROVIDER" in
         fi
         ;;
     codex)
+        OUT_DIR=".codex/agents"
+        EXT="md"
         TARGET_DIR="$HOME/.config/codex/agents"
         ;;
     claude)
+        OUT_DIR=".claude/agents"
+        EXT="md"
         TARGET_DIR="$HOME/.config/claude/agents"
+        ;;
+    *)
+        echo "Error: unknown provider '$PROVIDER'" >&2
+        echo "Supported providers: github, opencode, cursor, codex, claude" >&2
+        exit 1
         ;;
 esac
 
@@ -87,31 +93,9 @@ fi
 
 echo "Installing agents to $TARGET_DIR..."
 
-if [ "$PROVIDER" = "github" ]; then
-    for f in "$SCRIPT_DIR/../.github/agents"/*.agent.md; do
-        cp "$f" "$TARGET_DIR/"
-        echo "  Installed: $(basename "$f")"
-    done
-elif [ "$PROVIDER" = "opencode" ]; then
-    for f in "$SCRIPT_DIR/../.opencode/agents"/*.md; do
-        cp "$f" "$TARGET_DIR/"
-        echo "  Installed: $(basename "$f")"
-    done
-elif [ "$PROVIDER" = "cursor" ]; then
-    for f in "$SCRIPT_DIR/../.cursor/agents"/*.md; do
-        cp "$f" "$TARGET_DIR/"
-        echo "  Installed: $(basename "$f")"
-    done
-elif [ "$PROVIDER" = "codex" ]; then
-    for f in "$SCRIPT_DIR/../.codex/agents"/*.md; do
-        cp "$f" "$TARGET_DIR/"
-        echo "  Installed: $(basename "$f")"
-    done
-elif [ "$PROVIDER" = "claude" ]; then
-    for f in "$SCRIPT_DIR/../.claude/agents"/*.md; do
-        cp "$f" "$TARGET_DIR/"
-        echo "  Installed: $(basename "$f")"
-    done
-fi
+for f in "$SCRIPT_DIR/../$OUT_DIR"/*."$EXT"; do
+    cp "$f" "$TARGET_DIR/"
+    echo "  Installed: $(basename "$f")"
+done
 
 echo "Done. Installed $(ls "$TARGET_DIR"/* 2>/dev/null | wc -l) agents globally."

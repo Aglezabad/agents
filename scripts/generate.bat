@@ -2,14 +2,14 @@
 setlocal enabledelayedexpansion
 
 set "AGENTS_DIR=agents"
-set "GITHUB_DIR=.github\agents"
-set "OPENCODE_DIR=.opencode\agents"
-set "CURSOR_DIR=.cursor\agents"
-set "CODEX_DIR=.codex\agents"
-set "CLAUDE_DIR=.claude\agents"
+set "PREAMBLES_DIR=preambles"
 set "MASTER_FILE=AGENTS.md"
+set "PREAMBLE_TAG=[**PREAMBLES**]"
 set "PROVIDER="
 set "NO_PREAMBLE="
+set "OUT_DIR="
+set "EXT="
+set "LABEL="
 
 rem Parse arguments
 :parse_args
@@ -20,22 +20,20 @@ if "%~1"=="--provider" (
     shift
     goto :parse_args
 )
-if "%~1"=="--no-preamble" (
-    set "NO_PREAMBLE=all"
-    shift
-    if not "%~1"=="" (
-        set "arg=%~1"
-        if not "!arg:~0,2!"=="--" (
-            set "NO_PREAMBLE=%~1"
-            shift
-        )
-    )
-    goto :parse_args
-)
+if not "%~1"=="--no-preamble" goto :no_preamble_done
+set "NO_PREAMBLE=all"
+shift
+if "%~1"=="" goto :parse_args
+set "arg=%~1"
+if "!arg:~0,1!"=="-" goto :parse_args
+set "NO_PREAMBLE=%~1"
+shift
+goto :parse_args
+:no_preamble_done
 if "%~1"=="-h" goto :show_help
 if "%~1"=="--help" goto :show_help
 echo Unknown option: %~1 >&2
-echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
+echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> [--no-preamble [^<names^>^|all]] >&2
 exit /b 1
 
 :show_help
@@ -54,14 +52,39 @@ exit /b 0
 
 :done_parsing
 
-rem Validate provider
+rem Validate provider and resolve output dir, file extension, and display label
 if "%PROVIDER%"=="" (
     echo Error: --provider is required >&2
     echo Usage: %~nx0 --provider ^<github^|opencode^|cursor^|codex^|claude^> >&2
     exit /b 1
 )
 
-if not "%PROVIDER%"=="github" if not "%PROVIDER%"=="opencode" if not "%PROVIDER%"=="cursor" if not "%PROVIDER%"=="codex" if not "%PROVIDER%"=="claude" (
+if "%PROVIDER%"=="github" (
+    set "OUT_DIR=.github\agents"
+    set "EXT=agent.md"
+    set "LABEL=GitHub Copilot"
+)
+if "%PROVIDER%"=="opencode" (
+    set "OUT_DIR=.opencode\agents"
+    set "EXT=md"
+    set "LABEL=OpenCode"
+)
+if "%PROVIDER%"=="cursor" (
+    set "OUT_DIR=.cursor\agents"
+    set "EXT=md"
+    set "LABEL=Cursor"
+)
+if "%PROVIDER%"=="codex" (
+    set "OUT_DIR=.codex\agents"
+    set "EXT=md"
+    set "LABEL=GitHub Codex"
+)
+if "%PROVIDER%"=="claude" (
+    set "OUT_DIR=.claude\agents"
+    set "EXT=md"
+    set "LABEL=Claude Code"
+)
+if "%LABEL%"=="" (
     echo Error: unknown provider '%PROVIDER%' >&2
     echo Supported providers: github, opencode, cursor, codex, claude >&2
     exit /b 1
@@ -73,25 +96,40 @@ if not exist "%AGENTS_DIR%" (
 )
 
 rem Create and clean only the target directory
-if "%PROVIDER%"=="github" (
-    if not exist "%GITHUB_DIR%" mkdir "%GITHUB_DIR%"
-    del /q "%GITHUB_DIR%\*.agent.md" 2>nul
-)
-if "%PROVIDER%"=="opencode" (
-    if not exist "%OPENCODE_DIR%" mkdir "%OPENCODE_DIR%"
-    del /q "%OPENCODE_DIR%\*.md" 2>nul
-)
-if "%PROVIDER%"=="cursor" (
-    if not exist "%CURSOR_DIR%" mkdir "%CURSOR_DIR%"
-    del /q "%CURSOR_DIR%\*.md" 2>nul
-)
-if "%PROVIDER%"=="codex" (
-    if not exist "%CODEX_DIR%" mkdir "%CODEX_DIR%"
-    del /q "%CODEX_DIR%\*.md" 2>nul
-)
-if "%PROVIDER%"=="claude" (
-    if not exist "%CLAUDE_DIR%" mkdir "%CLAUDE_DIR%"
-    del /q "%CLAUDE_DIR%\*.md" 2>nul
+if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
+del /q "%OUT_DIR%\*.%EXT%" 2>nul
+
+rem Build the preamble block once into a temp file (sorted order, minus any
+rem excluded via --no-preamble). Lines are streamed with echo instead of being
+rem accumulated in a multi-line variable, which cmd cannot parse reliably.
+set "PREAMBLE_TMP="
+set "PREAMBLE_TMPFILE=%TEMP%\preambles-%RANDOM%.tmp"
+if not "%NO_PREAMBLE%"=="all" (
+    set "pfirst=1"
+    for %%f in (%PREAMBLES_DIR%\*.txt) do (
+        set "excluded=0"
+        if not "%NO_PREAMBLE%"=="" (
+            set "np=%NO_PREAMBLE:,= %"
+            for %%n in (!np!) do (
+                if "%%n"=="%%~nf" set "excluded=1"
+            )
+        )
+        if "!excluded!"=="0" (
+            set "plines=0"
+            for /f "usebackq delims=" %%l in ("%%f") do set "plines=1"
+            if "!plines!"=="1" (
+                if "!pfirst!"=="1" (
+                    set "pfirst=0"
+                ) else (
+                    >> "%PREAMBLE_TMPFILE%" echo.
+                )
+                for /f "usebackq delims=" %%l in ("%%f") do >> "%PREAMBLE_TMPFILE%" echo:%%l
+            ) else (
+                echo Warning: %%f is empty; skipping >&2
+            )
+        )
+    )
+    if exist "%PREAMBLE_TMPFILE%" set "PREAMBLE_TMP=%PREAMBLE_TMPFILE%"
 )
 
 (
@@ -105,16 +143,17 @@ if "%PROVIDER%"=="claude" (
 
 set count=0
 for %%f in (%AGENTS_DIR%\*.txt) do (
-    set "file=%%f"
     set "agent_id="
     set "agent_name="
     set "agent_desc="
     set "in_body=0"
-    set "body="
 
-    for /f "usebackq delims=" %%a in ("%%f") do (
-        set "line=%%a"
-        if !in_body! equ 0 (
+    rem Pass 1: parse metadata (lines before the first blank line). findstr /n
+    rem prefixes line numbers so blank lines survive the for /f loop.
+    for /f "usebackq delims=" %%a in (`findstr /n "^" "%%f"`) do (
+        if "!in_body!"=="0" (
+            set "line=%%a"
+            set "line=!line:*:=!"
             if "!line!"=="" (
                 set "in_body=1"
             ) else (
@@ -122,131 +161,61 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
                 echo !line! | findstr /b "NAME:" >nul && set "agent_name=!line:~6!"
                 echo !line! | findstr /b "DESCRIPTION:" >nul && set "agent_desc=!line:~13!"
             )
-        ) else (
-            if "!body!"=="" (
-                set "body=!line!"
-            ) else (
-                set "body=!body!
-!line!"
-            )
         )
     )
 
-    if "!agent_id!"=="" goto :skip
-    if "!agent_desc!"=="" goto :skip
+    if "!agent_id!"=="" (
+        echo Warning: skipping %%f ^(missing ID or DESCRIPTION^) >&2
+    ) else (
+        if "!agent_desc!"=="" (
+            echo Warning: skipping %%f ^(missing ID or DESCRIPTION^) >&2
+        ) else (
+            if "!agent_name!"=="" set "agent_name=!agent_id!"
 
-    if "!agent_name!"=="" set "agent_name=!agent_id!"
-
-    rem Prepend all preambles in sorted order, skipping any excluded via --no-preamble
-    if not "%NO_PREAMBLE%"=="all" (
-        set "preamble_block="
-        for %%f in (preambles\*.txt) do (
-            set "excluded=0"
-            if not "%NO_PREAMBLE%"=="" (
-                set "np=%NO_PREAMBLE:,= %"
-                for %%n in (!np!) do (
-                    if "%%n"=="%%~nf" set "excluded=1"
-                )
+            rem Pass 2a: write frontmatter
+            > "%OUT_DIR%\!agent_id!.%EXT%" (
+                echo ---
+                echo name: !agent_name!
+                echo description: !agent_desc!
+                echo ---
+                echo.
+                echo # !agent_name!
+                echo.
             )
-            if "!excluded!"=="0" (
-                for %%p in ("%%f") do if %%~zp gtr 0 (
-                    set "preamble="
-                    for /f "usebackq delims=" %%l in ("%%f") do (
-                        if "!preamble!"=="" (
-                            set "preamble=%%l"
+
+            rem Pass 2b: stream the body, injecting the preamble block at the
+            rem tag; the tag line is dropped when no preambles are selected
+            set "has_tag=0"
+            set "in_body=0"
+            for /f "usebackq delims=" %%a in (`findstr /n "^" "%%f"`) do (
+                set "line=%%a"
+                set "line=!line:*:=!"
+                if "!in_body!"=="0" (
+                    if "!line!"=="" set "in_body=1"
+                ) else (
+                    if "!line!"=="%PREAMBLE_TAG%" (
+                        set "has_tag=1"
+                        if defined PREAMBLE_TMP type "%PREAMBLE_TMP%" >> "%OUT_DIR%\!agent_id!.%EXT%"
+                    ) else (
+                        if "!line!"=="" (
+                            >> "%OUT_DIR%\!agent_id!.%EXT%" echo.
                         ) else (
-                            set "preamble=!preamble!
-%%l"
+                            >> "%OUT_DIR%\!agent_id!.%EXT%" echo:!line!
                         )
                     )
-                    if "!preamble_block!"=="" (
-                        set "preamble_block=!preamble!"
-                    ) else (
-                        set "preamble_block=!preamble_block!
-
-!preamble!"
-                    )
-                ) else (
-                    echo Warning: %%f is empty; skipping >&2
                 )
             )
+            if "!has_tag!"=="0" if defined PREAMBLE_TMP echo Warning: %%f has no %PREAMBLE_TAG% tag; skipping preambles >&2
+
+            (
+                echo ### !agent_name! — !agent_desc!
+                echo !agent_desc!
+                echo.
+            ) >> "%MASTER_FILE%"
+
+            set /a count+=1
         )
-        if not "!preamble_block!"=="" (
-            set "body=!preamble_block!
-
-!body!"
-        )
     )
-
-    if "%PROVIDER%"=="github" (
-        (
-            echo ---
-            echo name: !agent_name!
-            echo description: !agent_desc!
-            echo ---
-            echo.
-            echo # !agent_name!
-            echo.
-            echo !body!
-        ) > "%GITHUB_DIR!\!agent_id!.agent.md"
-    )
-    if "%PROVIDER%"=="opencode" (
-        (
-            echo ---
-            echo name: !agent_name!
-            echo description: !agent_desc!
-            echo ---
-            echo.
-            echo # !agent_name!
-            echo.
-            echo !body!
-        ) > "%OPENCODE_DIR!\!agent_id!.md"
-    )
-    if "%PROVIDER%"=="cursor" (
-        (
-            echo ---
-            echo name: !agent_name!
-            echo description: !agent_desc!
-            echo ---
-            echo.
-            echo # !agent_name!
-            echo.
-            echo !body!
-        ) > "%CURSOR_DIR!\!agent_id!.md"
-    )
-    if "%PROVIDER%"=="codex" (
-        (
-            echo ---
-            echo name: !agent_name!
-            echo description: !agent_desc!
-            echo ---
-            echo.
-            echo # !agent_name!
-            echo.
-            echo !body!
-        ) > "%CODEX_DIR!\!agent_id!.md"
-    )
-    if "%PROVIDER%"=="claude" (
-        (
-            echo ---
-            echo name: !agent_name!
-            echo description: !agent_desc!
-            echo ---
-            echo.
-            echo # !agent_name!
-            echo.
-            echo !body!
-        ) > "%CLAUDE_DIR!\!agent_id!.md"
-    )
-
-    (
-        echo ### !agent_name! — !agent_desc!
-        echo !agent_desc!
-        echo.
-    ) >> "%MASTER_FILE%"
-
-    set /a count+=1
-    :skip
 )
 
 (
@@ -261,10 +230,8 @@ for %%f in (%AGENTS_DIR%\*.txt) do (
     echo - The agent named in the AGENT: prefix will determine the style of response ^(generator, reviewer, security, or performance^).
 ) >> "%MASTER_FILE%"
 
-if "%PROVIDER%"=="github" echo Generated %count% agents for GitHub Copilot (%GITHUB_DIR%^)
-if "%PROVIDER%"=="opencode" echo Generated %count% agents for OpenCode (%OPENCODE_DIR%^)
-if "%PROVIDER%"=="cursor" echo Generated %count% agents for Cursor (%CURSOR_DIR%^)
-if "%PROVIDER%"=="codex" echo Generated %count% agents for Codex (%CODEX_DIR%^)
-if "%PROVIDER%"=="claude" echo Generated %count% agents for Claude Code (%CLAUDE_DIR%^)
+if defined PREAMBLE_TMP del "%PREAMBLE_TMP%" 2>nul
+
+echo Generated %count% agents for %LABEL% (%OUT_DIR%^)
 echo Generated master index (%MASTER_FILE%^)
 endlocal
