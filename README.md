@@ -145,6 +145,9 @@ Optional behavior blocks in `preambles/` are injected into every generated agent
 | Preamble | Purpose |
 |----------|---------|
 | `compact-thinking` | Keeps internal reasoning compact and responds in the user's language |
+| `tokenomics` | Avoids filler and unnecessary rewrites; explains "why", never "what" |
+
+Preambles are concatenated in file-name order, so `compact-thinking` is injected before `tokenomics`.
 
 ### Skipping preambles
 
@@ -173,6 +176,8 @@ To add a new preamble, drop a `name.txt` file in `preambles/`; it is picked up a
 1. Edit the corresponding file in `agents/` — keep the `[**PREAMBLES**]` marker where preambles should be injected
 2. Run `scripts/generate.sh --provider <name>` (or `.bat`)
 3. Commit both `agents/` and the generated files
+
+See [`docs/AGENT-STRUCTURE.md`](docs/AGENT-STRUCTURE.md) for the full file format (metadata header, body skeleton, preamble marker, tests) and a minimal example.
 
 ## Usage
 
